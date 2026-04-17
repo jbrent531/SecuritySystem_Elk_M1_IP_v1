@@ -35,6 +35,16 @@ namespace SecuritySystem_Elk_M1_IP_v1
         private bool _currentAlarm;
         private bool _currentConnected;
 
+        private readonly string[] _functionButtonLabels =
+        {
+            "Stay",
+            "Away",
+            "Disarm",
+            "Fire",
+            "Aux",
+            "Custom"
+        };
+
         private readonly object _sync = new object();
 
         public SecuritySystemProtocol(SecuritySystemDriverIP system, ISerialTransport transportDriver, byte id)
@@ -320,22 +330,56 @@ namespace SecuritySystem_Elk_M1_IP_v1
         {
         }
 
+        public string GetFunctionButtonLabel(int buttonNumber)
+        {
+            if (buttonNumber < 1 || buttonNumber > 6)
+            {
+                return string.Empty;
+            }
+
+            return _functionButtonLabels[buttonNumber - 1];
+        }
+
         public void TriggerFunctionButton(int buttonNumber)
         {
             switch (buttonNumber)
             {
                 case 1:
-                    FireAndForget(_elkService.ArmStayAsync(1, string.Empty));
-                    break;
-
                 case 2:
-                    FireAndForget(_elkService.ArmAwayAsync(1, string.Empty));
+                case 3:
+                case 4:
+                case 5:
+                case 6:
+                    FireAndForget(PressKeypadFunctionButtonAsync(_keypadNumber, buttonNumber));
                     break;
 
-                case 3:
-                    RaiseAlarmStateChangedEvent(SecuritySystemAlarmType.Fire, true);
-                    RaiseKeypadAlarmChangedEvent(SecuritySystemAlarmType.Fire, true);
+                case 7:
+                    FireAndForget(BypassAllOpenZonesForCurrentAreaAsync(string.Empty));
                     break;
+            }
+        }
+
+        private async Task PressKeypadFunctionButtonAsync(int keypadNumber, int functionButtonNumber)
+        {
+            if (_elkService == null)
+            {
+                return;
+            }
+
+            MethodInfo method = _elkService.GetType().GetMethod(
+                "PressFunctionKeyAsync",
+                BindingFlags.Public | BindingFlags.Instance);
+
+            if (method == null)
+            {
+                LogMessage("PressFunctionKeyAsync not implemented on Elk service.");
+                return;
+            }
+
+            Task task = method.Invoke(_elkService, new object[] { keypadNumber, functionButtonNumber }) as Task;
+            if (task != null)
+            {
+                await task.ConfigureAwait(false);
             }
         }
 
@@ -386,6 +430,58 @@ namespace SecuritySystem_Elk_M1_IP_v1
                     TargetComponentId = new List<int> { zoneIndex }
                 };
             }
+        }
+
+
+        private async Task BypassAllOpenZonesForCurrentAreaAsync(string password)
+        {
+            int areaIndex = GetKeypadArea();
+            List<int> zoneIndexes = new List<int>();
+
+            foreach (ElkZone elkZone in _elkService.Zones.Values)
+            {
+                if (elkZone == null)
+                {
+                    continue;
+                }
+
+                if (elkZone.Partition != areaIndex)
+                {
+                    continue;
+                }
+
+                if (!elkZone.IsConfigured || elkZone.Definition == 0)
+                {
+                    continue;
+                }
+
+                bool isOpen = elkZone.IsOpen || elkZone.IsViolated || elkZone.IsTrouble;
+                if (isOpen && !elkZone.IsBypassed)
+                {
+                    zoneIndexes.Add(elkZone.Number);
+                }
+            }
+
+            if (zoneIndexes.Count == 0)
+            {
+                LogMessage("BypassAllOpenZonesForCurrentAreaAsync: no open zones found for area " + areaIndex);
+                return;
+            }
+
+            LogMessage("BypassAllOpenZonesForCurrentAreaAsync: bypassing " + zoneIndexes.Count + " zone(s) for area " + areaIndex);
+
+            foreach (int zoneIndex in zoneIndexes)
+            {
+                SetZoneBypass(zoneIndex, true, password);
+                await Task.Delay(100).ConfigureAwait(false);
+            }
+        }
+
+
+        private int GetKeypadArea()
+        {
+            // Replace this with real keypad->area mapping if your Elk layer exposes it.
+            return 1;
         }
 
         protected override void ChooseDeconstructMethod(ValidatedRxData validatedData)

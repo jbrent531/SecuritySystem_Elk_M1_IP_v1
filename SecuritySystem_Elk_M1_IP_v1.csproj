@@ -124,7 +124,7 @@
       <HintPath>packages\Crestron.DeviceDrivers.DevKit.27.0.24\lib\net47\IrVideoServer.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json.Compact">
-      <HintPath>..\..\..\..\..\..\..\..\ProgramData\Crestron\SDK\Newtonsoft.Json.Compact.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\..\..\..\ProgramData\Crestron\SDK\Newtonsoft.Json.Compact.dll</HintPath>
     </Reference>
     <Reference Include="RADAudioMixer, Version=27.0.24.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>packages\Crestron.DeviceDrivers.DevKit.27.0.24\lib\net47\RADAudioMixer.dll</HintPath>

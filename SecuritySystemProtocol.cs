@@ -150,6 +150,15 @@ namespace SecuritySystem_Elk_M1_IP_v1
                             area = 1;
                         }
 
+                        SecuritySystemArea placeholder;
+                        if (_selectedArea != area
+                            && _areaLookup.TryGetValue(_selectedArea, out placeholder))
+                        {
+                            _areaLookup.Remove(_selectedArea);
+                            placeholder.Index = area;
+                            _areaLookup[area] = placeholder;
+                        }
+
                         _selectedArea = area;
                         _hasAreaNumber = true;
 
@@ -658,6 +667,12 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
         private void OnElkAreaChanged(ElkArea elkArea)
         {
+
+            CrestronConsole.PrintLine(string.Format("OnElkAreaChanged num={0} name={1} arm={2}",
+            elkArea == null ? -1 : elkArea.Number,
+            elkArea == null ? "<null>" : elkArea.Name,
+            elkArea == null ? "<null>" : elkArea.ArmStateText));
+
             if (elkArea == null || !_structureInitialized)
             {
                 return;

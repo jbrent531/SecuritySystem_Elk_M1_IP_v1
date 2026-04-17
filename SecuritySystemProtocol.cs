@@ -1,5 +1,4 @@
-﻿// file: SecuritySystemProtocol.cs
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Reflection;
@@ -664,13 +663,26 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
         private void OnElkZoneChanged(ElkZone elkZone)
         {
-            if (elkZone == null)
+            if (elkZone == null || elkZone.Number < 1 || elkZone.Number > 208)
             {
                 return;
             }
 
+            if (!elkZone.IsConfigured || elkZone.Definition == 0 || elkZone.Partition < 1)
+            {
+                return;
+            }
+
+            CrestronConsole.PrintLine(
+                "OnElkZoneChanged zone={0} name={1} partition={2} bypassed={3} definition={4}",
+                elkZone.Number,
+                elkZone.Name ?? string.Empty,
+                elkZone.Partition,
+                elkZone.IsBypassed,
+                elkZone.Definition);
+
             bool isNew;
-            ISecuritySystemZone zone = FindOrCreateZone(elkZone.Number, out isNew);
+            ISecuritySystemZone zone = FindOrCreateZone(elkZone, out isNew);
             SecuritySystemZone securityZone = zone as SecuritySystemZone;
 
             if (securityZone != null)
@@ -681,21 +693,31 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
                 bool isFaulted = elkZone.IsOpen || elkZone.IsViolated || elkZone.IsTrouble;
 
-                // Temporary: assign all zones to Area 1 until we wire real zone->area mapping.
-                securityZone.ApplyElkState(zoneName, 1, isFaulted, elkZone.IsBypassed, elkZone.Definition);
+                securityZone.ApplyElkState(
+                    zoneName,
+                    elkZone.Partition,
+                    isFaulted,
+                    elkZone.IsBypassed,
+                    elkZone.Definition);
             }
         }
 
-        private ISecuritySystemZone FindOrCreateZone(int zoneNumber, out bool isNew)
+        private ISecuritySystemZone FindOrCreateZone(ElkZone elkZone, out bool isNew)
         {
             SecuritySystemZone existing;
-            if (_zoneLookup.TryGetValue(zoneNumber, out existing))
+            if (_zoneLookup.TryGetValue(elkZone.Number, out existing))
             {
                 isNew = false;
                 return existing;
             }
 
-            SecuritySystemZone zone = new SecuritySystemZone("Zone " + zoneNumber.ToString("D3"), zoneNumber, 1);
+            int areaIndex = elkZone.Partition > 0 ? elkZone.Partition : 1;
+
+            SecuritySystemZone zone = new SecuritySystemZone(
+                "Zone " + elkZone.Number.ToString("D3"),
+                elkZone.Number,
+                areaIndex);
+
             zone.SecuritySystemZoneStateChanged += OnSecuritySystemZoneStateChanged;
 
             zone.BypassDelegate = delegate (int zoneIdx, int areaIdx, string password)
@@ -708,7 +730,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 SetZoneBypass(zoneIdx, false, password);
             };
 
-            _zoneLookup[zoneNumber] = zone;
+            _zoneLookup[elkZone.Number] = zone;
             _zones.Add(zone);
 
             isNew = true;
@@ -721,14 +743,13 @@ namespace SecuritySystem_Elk_M1_IP_v1
             EventHandler<ListChangedEventArgs<ISecuritySystemZone>> handler = ZoneListChanged;
             if (handler != null)
             {
-                int listIndex = _zones.IndexOf(zone);
                 handler(
                     this,
                     new ListChangedEventArgs<ISecuritySystemZone>(
                         ListChangedAction.Added,
                         null,
                         zone,
-                        listIndex));
+                        -1));
             }
         }
 

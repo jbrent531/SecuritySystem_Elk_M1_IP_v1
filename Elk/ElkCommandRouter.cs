@@ -55,6 +55,10 @@ namespace SecuritySystem_Elk_M1_IP_v1
                     HandleZc(packet);
                     break;
 
+                case "ZP":
+                    HandleZp(packet);
+                    break;
+
                 case "AM":
                     HandleAm(packet);
                     break;
@@ -90,6 +94,47 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
         private void HandleXk(ElkPacket packet)
         {
+        }
+
+        private void HandleZp(ElkPacket packet)
+        {
+            if (string.IsNullOrWhiteSpace(packet.Data))
+            {
+                return;
+            }
+
+            int maxZones = packet.Data.Length;
+            if (maxZones > 208)
+            {
+                maxZones = 208;
+            }
+
+            for (int i = 0; i < maxZones; i++)
+            {
+                int zoneNumber = i + 1;
+                char rawPartition = packet.Data[i];
+
+                int partition = 0;
+                if (rawPartition >= '1' && rawPartition <= '8')
+                {
+                    partition = rawPartition - '0';
+                }
+
+                var zone = _state.GetOrCreateZone(zoneNumber);
+                int oldPartition = zone.Partition;
+
+                zone.Partition = partition;
+
+                if (oldPartition != zone.Partition && zone.IsConfigured)
+                {
+                    CrestronConsole.PrintLine(
+                        "ZONE PARTITION UPDATED: " + zone.Number.ToString("D3") + " -> " + zone.Partition);
+
+                    _state.RaiseZoneChanged(zone);
+                }
+            }
+
+            _state.RecalculateDerivedState();
         }
 
         private void HandleAs(ElkPacket packet)

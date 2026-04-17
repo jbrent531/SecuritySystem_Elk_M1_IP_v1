@@ -74,6 +74,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
             await _transport.ConnectAsync(host, port);
             await InitialSyncAsync();
+            await _client.RequestZonePartitionsAsync().ConfigureAwait(false);
 
             _ = Task.Run(() => PollLoopAsync(_pollCts.Token));
         }
@@ -137,17 +138,32 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
         private async Task InitialSyncAsync()
         {
-            await _client.RequestArmingStatusAsync();
-            await Task.Delay(100);
+            await _client.RequestArmingStatusAsync().ConfigureAwait(false);
+            await Task.Delay(50).ConfigureAwait(false);
 
-            await _client.RequestZoneStatusAsync();
-            await Task.Delay(100);
+            await _client.RequestZoneStatusAsync().ConfigureAwait(false);
+            await Task.Delay(50).ConfigureAwait(false);
 
-            await _client.RequestZoneDefinitionsAsync();
-            await Task.Delay(100);
+            await _client.RequestZoneDefinitionsAsync().ConfigureAwait(false);
+            await Task.Delay(50).ConfigureAwait(false);
 
-            await RefreshZoneNamesAsync();
-            await RefreshAreaNamesAsync();
+            await _client.RequestZonePartitionsAsync().ConfigureAwait(false);
+            await Task.Delay(50).ConfigureAwait(false);
+
+            await _client.RequestSystemTroubleStatusAsync().ConfigureAwait(false);
+            await Task.Delay(50).ConfigureAwait(false);
+
+            for (int area = 1; area <= 8; area++)
+            {
+                await _client.RequestTextDescriptionAsync(1, area).ConfigureAwait(false);
+                await Task.Delay(20).ConfigureAwait(false);
+            }
+
+            for (int zone = 1; zone <= 208; zone++)
+            {
+                await _client.RequestTextDescriptionAsync(0, zone).ConfigureAwait(false);
+                await Task.Delay(20).ConfigureAwait(false);
+            }
         }
 
         public async Task RefreshAreaNamesAsync()

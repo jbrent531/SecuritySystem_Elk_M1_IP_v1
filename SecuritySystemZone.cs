@@ -1,4 +1,5 @@
-﻿using System;
+﻿// file: SecuritySystemZone.cs
+using System;
 using System.Collections.Generic;
 using Crestron.RAD.Common.Enums;
 using Crestron.RAD.Common.Events;
@@ -8,9 +9,6 @@ using Crestron.SimplSharp;
 
 namespace SecuritySystem_Elk_M1_IP_v1
 {
-    /// <summary>
-    /// This is used to define security system zone
-    /// </summary>
     public class SecuritySystemZone : ISecuritySystemZone4
     {
         private readonly List<SecuritySystemZoneState> _activeZoneState;
@@ -134,6 +132,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
             }
 
             SetAreaIndex(areaIndex);
+            ApplyElkDefinition(Name, (char)definition);
 
             UpdateActiveState(SecuritySystemZoneState.Faulted, faulted);
             UpdateActiveState(SecuritySystemZoneState.Bypassed, bypassed);
@@ -162,10 +161,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
                     if (name.Contains("window"))
                     {
                         Type = SecuritySystemZoneType.Window;
-                    }
-                    else if (name.Contains("door"))
-                    {
-                        Type = SecuritySystemZoneType.Door;
                     }
                     else
                     {
@@ -198,10 +193,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
                     else if (name.Contains("motion"))
                     {
                         Type = SecuritySystemZoneType.Motion;
-                    }
-                    else if (name.Contains("smoke"))
-                    {
-                        Type = SecuritySystemZoneType.Other;
                     }
                     else
                     {

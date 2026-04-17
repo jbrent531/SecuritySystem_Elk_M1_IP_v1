@@ -1,0 +1,137 @@
+{
+  "CrestronSerialDeviceApi": {
+    "DeviceSupport": {
+      "SupportsReconnect": true,
+      "SupportsDisconnect": true,
+      "SupportsPowerFeedback": false,
+      "SupportsUsername": false,
+      "SupportsPassword": true
+    },
+    "GeneralInformation": {
+      "BaseModel": "M1 - Basic",
+      "Description": "Single Area Driver for M1",
+      "DeviceType": "Security System",
+      "DriverVersion": "27.000.021",
+      "Guid": "8a7099d0-1a7c-43d8-9267-4d5c4036c340",
+      "DependencyGroup": "",
+      "Developer": {
+        "Company": "Acoustic Designs Group",
+        "Contact": "Jason Brent",
+        "Email": "service@adgroupaz.com",
+        "Website": "www.adgroupaz.com",
+        "PhoneNumber": "(888)-295-0950"
+      },
+      "Manufacturer": "Elk",
+      "SdkVersion": "27.0000.0024",
+      "SupportedModels": [
+        "M1"
+      ],
+      "SupportedSeries": [
+        "M1"
+      ],
+      "VersionDate": "2026-04-16 12:49:36.000"
+    },
+    "UserAttributes": [
+      {
+        "TypeName": "Custom",
+        "ParameterId": "MonitoredZones",
+        "Label": "Number of monitored zones",
+        "Description": "Zone list/ranges to monitor. Example: 1-4,8,10,15-25",
+        "Persistent": true,
+        "RequiredForConnection": "Before",
+        "Data": {
+          "DataType": "String",
+          "Mask": "",
+          "DefaultValue": "1-8"
+        }
+      },
+      {
+        "TypeName": "Custom",
+        "ParameterId": "AreaNumber",
+        "Label": "Number of the area or partition",
+        "Description": "Elk area/partition number. Valid range: 1-8",
+        "Persistent": true,
+        "RequiredForConnection": "Before",
+        "Data": {
+          "DataType": "String",
+          "Mask": "",
+          "DefaultValue": "1"
+        }
+      },
+      {
+        "TypeName": "Custom",
+        "ParameterId": "KeypadNumber",
+        "Label": "Keypad",
+        "Description": "Elk keypad number. Valid range: 1-16",
+        "Persistent": true,
+        "RequiredForConnection": "Before",
+        "Data": {
+          "DataType": "String",
+          "Mask": "",
+          "DefaultValue": "1"
+        }
+      },
+      {
+        "TypeName": "Custom",
+        "ParameterId": "StartupDelaySeconds",
+        "Label": "Startup Delay",
+        "Description": "Delay driver initialization in seconds",
+        "Persistent": true,
+        "RequiredForConnection": "Before",
+        "Data": {
+          "DataType": "String",
+          "Mask": "",
+          "DefaultValue": "0"
+        }
+      },
+      {
+        "TypeName": "Custom",
+        "ParameterId": "DoubleDisarm",
+        "Label": "Enable double disarm to clear panel message",
+        "Description": "true or false. When true, send disarm twice to clear panel alarm message.",
+        "Persistent": true,
+        "RequiredForConnection": "Before",
+        "Data": {
+          "DataType": "String",
+          "Mask": "",
+          "DefaultValue": "false"
+        }
+      }
+    ],
+    "Api": {
+      "Communication": {
+        "Authentication": {
+          "UsernameRequired": false,
+          "PasswordRequired": false,
+          "Type": "UsernamePassword",
+          "Required": false,
+          "UsernameMask": "",
+          "PasswordMask": "",
+          "DefaultUsername": "",
+          "DefaultPassword": ""
+        },
+        "Baud": -1,
+        "CommunicationType": 1,
+        "DataBits": 0,
+        "DeviceId": 0,
+        "EnableAutoPolling": true,
+        "EnableAutoReconnect": true,
+        "HwHandshake": -1,
+        "IpProtocol": 0,
+        "IsSecure": false,
+        "IsUserAdjustable": true,
+        "Parity": -1,
+        "Port": 2101,
+        "Protocol": -1,
+        "ResponseTimeout": 9000,
+        "StopBits": -1,
+        "SwHandshake": -1,
+        "TimeBetweenCommands": 250,
+        "UserAdjustableProperties": [
+          "EthernetAdjustablePort"
+        ],
+        "WaitForResponse": true
+      }
+    }
+  }
+}

@@ -132,7 +132,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 return null;
             }
 
-            foreach (var area in _securitySystemProtocol.GetVisibleAreas())
+            foreach (var area in _securitySystemProtocol.Areas)
             {
                 if (area.Index == index)
                 {
@@ -150,7 +150,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 return null;
             }
 
-            return _securitySystemProtocol.GetVisibleAreas();
+            return _securitySystemProtocol.Areas;
         }
 
         public ReadOnlyCollection<SecuritySystemAreaCommand> GetAvailableAreaCommands()

@@ -126,20 +126,18 @@ namespace SecuritySystem_Elk_M1_IP_v1
             AreaId = areaIndex;
         }
 
-        public void ApplyElkState(string zoneName, bool isFaulted, bool isBypassed, char definition)
+        public void ApplyElkState(string name, int areaIndex, bool faulted, bool bypassed, int definition)
         {
-            if (!string.IsNullOrEmpty(zoneName))
+            if (!string.IsNullOrWhiteSpace(name) && !string.Equals(Name, name, StringComparison.Ordinal))
             {
-                Name = zoneName;
+                Name = name;
             }
 
-            ApplyElkDefinition(zoneName, definition);
+            SetAreaIndex(areaIndex);
 
-            bool isOk = !isFaulted && !isBypassed;
-
-            UpdateActiveState(SecuritySystemZoneState.Faulted, isFaulted);
-            UpdateActiveState(SecuritySystemZoneState.Bypassed, isBypassed);
-            UpdateActiveState(SecuritySystemZoneState.Ok, isOk);
+            UpdateActiveState(SecuritySystemZoneState.Faulted, faulted);
+            UpdateActiveState(SecuritySystemZoneState.Bypassed, bypassed);
+            UpdateActiveState(SecuritySystemZoneState.Ok, !faulted && !bypassed);
         }
 
         private void ApplyElkDefinition(string zoneName, char definition)

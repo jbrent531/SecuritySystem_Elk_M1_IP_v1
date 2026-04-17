@@ -1,7 +1,7 @@
-﻿using System;
+﻿// file: SecuritySystemProtocol.cs
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Crestron.RAD.Common.BasicDriver;
@@ -25,15 +25,9 @@ namespace SecuritySystem_Elk_M1_IP_v1
         private IElkSecurityService _elkService;
         private string _host;
         private int _port;
-        private int _selectedArea;
         private int _keypadNumber;
         private int _startupDelaySeconds;
         private bool _doubleDisarm;
-        private string _monitoredZones;
-        private HashSet<int> _configuredZoneSet;
-
-        private bool _hasAreaNumber;
-        private bool _hasMonitoredZones;
         private bool _structureInitialized;
 
         private bool _disposed;
@@ -56,22 +50,15 @@ namespace SecuritySystem_Elk_M1_IP_v1
             Zones = new ReadOnlyCollection<ISecuritySystemZone>(_zones);
             Areas = new ReadOnlyCollection<ISecuritySystemArea>(_areas);
 
-            _selectedArea = 1;
             _keypadNumber = 1;
             _startupDelaySeconds = 0;
             _doubleDisarm = false;
-            _monitoredZones = string.Empty;
-            _configuredZoneSet = new HashSet<int>();
-
-            _hasAreaNumber = false;
-            _hasMonitoredZones = false;
             _structureInitialized = false;
 
             _host = string.Empty;
             _port = 2101;
 
             InitializeElkService();
-            EnsureAreaExists(_selectedArea);
         }
 
         public ReadOnlyCollection<ISecuritySystemArea> Areas { get; private set; }
@@ -95,27 +82,14 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
         public IEnumerable<ISecuritySystemArea> GetVisibleAreas()
         {
-            if (_hasAreaNumber)
-            {
-                SecuritySystemArea selectedArea;
-                if (_areaLookup.TryGetValue(_selectedArea, out selectedArea))
-                {
-                    return new List<ISecuritySystemArea> { selectedArea };
-                }
-            }
-
             return Areas;
         }
 
         public void PrintAttributeValue()
         {
-            LogMessage("Selected area = " + _selectedArea);
-            LogMessage("MonitoredZones = " + _monitoredZones);
             LogMessage("KeypadNumber = " + _keypadNumber);
             LogMessage("StartupDelaySeconds = " + _startupDelaySeconds);
             LogMessage("DoubleDisarm = " + _doubleDisarm);
-            LogMessage("HasAreaNumber = " + _hasAreaNumber);
-            LogMessage("HasMonitoredZones = " + _hasMonitoredZones);
             LogMessage("StructureInitialized = " + _structureInitialized);
         }
 
@@ -130,37 +104,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
             switch (attributeId)
             {
-                case "MonitoredZones":
-                    {
-                        _monitoredZones = value.Trim();
-                        _configuredZoneSet = ParseZoneExpression(_monitoredZones);
-                        _hasMonitoredZones = true;
-
-                        TryInitializeStructure();
-
-                        LogMessage("MonitoredZones set to " + _monitoredZones);
-                        break;
-                    }
-
-                case "AreaNumber":
-                    {
-                        int area;
-                        if (!int.TryParse(value, out area) || area < 1 || area > 8)
-                        {
-                            area = 1;
-                        }
-
-                        _selectedArea = area;
-                        _hasAreaNumber = true;
-
-                        EnsureSelectedAreaContainer();
-                        TryInitializeStructure();
-
-                        PublishCurrentState();
-                        LogMessage("AreaNumber set to " + _selectedArea);
-                        break;
-                    }
-
                 case "KeypadNumber":
                     {
                         int keypad;
@@ -220,10 +163,10 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
         public SecuritySystemOperationalResult ExecuteSecurityCommands(List<int> areaIndexes, int commandIndex, string password)
         {
-            List<int> targets = areaIndexes ?? new List<int> { _selectedArea };
+            List<int> targets = areaIndexes ?? new List<int>();
             if (targets.Count == 0)
             {
-                targets.Add(_selectedArea);
+                targets.Add(1);
             }
 
             SecuritySystemAreaCommand executeCommand = null;
@@ -383,11 +326,11 @@ namespace SecuritySystem_Elk_M1_IP_v1
             switch (buttonNumber)
             {
                 case 1:
-                    FireAndForget(_elkService.ArmStayAsync(_selectedArea, string.Empty));
+                    FireAndForget(_elkService.ArmStayAsync(1, string.Empty));
                     break;
 
                 case 2:
-                    FireAndForget(_elkService.ArmAwayAsync(_selectedArea, string.Empty));
+                    FireAndForget(_elkService.ArmAwayAsync(1, string.Empty));
                     break;
 
                 case 3:
@@ -505,7 +448,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
             }
             finally
             {
-                foreach (SecuritySystemArea area in _areas.OfType<SecuritySystemArea>())
+                foreach (SecuritySystemArea area in _areas)
                 {
                     try
                     {
@@ -518,7 +461,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
                     }
                 }
 
-                foreach (SecuritySystemZone zone in _zones.OfType<SecuritySystemZone>())
+                foreach (SecuritySystemZone zone in _zones)
                 {
                     try
                     {
@@ -622,17 +565,8 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 return;
             }
 
-            if (!_hasAreaNumber || !_hasMonitoredZones)
-            {
-                return;
-            }
-
-            EnsureSelectedAreaContainer();
-            EnsureConfiguredZonesExist();
-
             _structureInitialized = true;
-
-            LogMessage("Structure initialized for area " + _selectedArea + " zones=" + _monitoredZones);
+            LogMessage("Structure initialized");
         }
 
         private void PublishCurrentState()
@@ -658,17 +592,18 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
         private void OnElkAreaChanged(ElkArea elkArea)
         {
-            if (elkArea == null || !_structureInitialized)
+            CrestronConsole.PrintLine(string.Format(
+                "OnElkAreaChanged num={0} name={1} arm={2}",
+                elkArea == null ? -1 : elkArea.Number,
+                elkArea == null ? "<null>" : elkArea.Name,
+                elkArea == null ? "<null>" : elkArea.ArmStateText));
+
+            if (elkArea == null)
             {
                 return;
             }
 
-            if (elkArea.Number != _selectedArea)
-            {
-                return;
-            }
-
-            SecuritySystemArea area = EnsureAreaExists(elkArea.Number);
+            SecuritySystemArea area = EnsureAreaExists(elkArea.Number, true);
 
             if (!string.IsNullOrWhiteSpace(elkArea.Name) &&
                 !string.Equals(area.Name, elkArea.Name, StringComparison.Ordinal))
@@ -680,20 +615,23 @@ namespace SecuritySystem_Elk_M1_IP_v1
             bool isAway = IsAway(elkArea);
             bool isDisarmed = !isStay && !isAway;
 
-            RaiseAreaStateChangedEvent(SecuritySystemState.Disarmed, isDisarmed);
-            RaiseAreaStateChangedEvent(SecuritySystemState.ArmedStay, isStay);
-            RaiseAreaStateChangedEvent(SecuritySystemState.ArmedAway, isAway);
+            if (elkArea.Number == 1)
+            {
+                RaiseAreaStateChangedEvent(SecuritySystemState.Disarmed, isDisarmed);
+                RaiseAreaStateChangedEvent(SecuritySystemState.ArmedStay, isStay);
+                RaiseAreaStateChangedEvent(SecuritySystemState.ArmedAway, isAway);
 
-            RaiseKeypadStateChangedEvent(SecuritySystemState.Disarmed, isDisarmed);
-            RaiseKeypadStateChangedEvent(SecuritySystemState.ArmedStay, isStay);
-            RaiseKeypadStateChangedEvent(SecuritySystemState.ArmedAway, isAway);
+                RaiseKeypadStateChangedEvent(SecuritySystemState.Disarmed, isDisarmed);
+                RaiseKeypadStateChangedEvent(SecuritySystemState.ArmedStay, isStay);
+                RaiseKeypadStateChangedEvent(SecuritySystemState.ArmedAway, isAway);
 
-            bool burglaryActive = elkArea.IsAlarm;
-            RaiseAlarmStateChangedEvent(SecuritySystemAlarmType.Alarm, burglaryActive);
-            RaiseAlarmStateChangedEvent(SecuritySystemAlarmType.Burglary, burglaryActive);
+                bool burglaryActive = elkArea.IsAlarm;
+                RaiseAlarmStateChangedEvent(SecuritySystemAlarmType.Alarm, burglaryActive);
+                RaiseAlarmStateChangedEvent(SecuritySystemAlarmType.Burglary, burglaryActive);
 
-            RaiseKeypadAlarmChangedEvent(SecuritySystemAlarmType.Alarm, burglaryActive);
-            RaiseKeypadAlarmChangedEvent(SecuritySystemAlarmType.Burglary, burglaryActive);
+                RaiseKeypadAlarmChangedEvent(SecuritySystemAlarmType.Alarm, burglaryActive);
+                RaiseKeypadAlarmChangedEvent(SecuritySystemAlarmType.Burglary, burglaryActive);
+            }
         }
 
         private void OnElkSystemReadyChanged(bool ready)
@@ -726,12 +664,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
         private void OnElkZoneChanged(ElkZone elkZone)
         {
-            if (elkZone == null || !_structureInitialized)
-            {
-                return;
-            }
-
-            if (!ShouldExposeZone(elkZone.Number))
+            if (elkZone == null)
             {
                 return;
             }
@@ -747,7 +680,9 @@ namespace SecuritySystem_Elk_M1_IP_v1
                     : elkZone.Name;
 
                 bool isFaulted = elkZone.IsOpen || elkZone.IsViolated || elkZone.IsTrouble;
-                securityZone.ApplyElkState(zoneName, isFaulted, elkZone.IsBypassed, elkZone.Definition);
+
+                // Temporary: assign all zones to Area 1 until we wire real zone->area mapping.
+                securityZone.ApplyElkState(zoneName, 1, isFaulted, elkZone.IsBypassed, elkZone.Definition);
             }
         }
 
@@ -756,12 +691,11 @@ namespace SecuritySystem_Elk_M1_IP_v1
             SecuritySystemZone existing;
             if (_zoneLookup.TryGetValue(zoneNumber, out existing))
             {
-                existing.SetAreaIndex(_selectedArea);
                 isNew = false;
                 return existing;
             }
 
-            SecuritySystemZone zone = new SecuritySystemZone("Zone " + zoneNumber.ToString("D3"), zoneNumber, _selectedArea);
+            SecuritySystemZone zone = new SecuritySystemZone("Zone " + zoneNumber.ToString("D3"), zoneNumber, 1);
             zone.SecuritySystemZoneStateChanged += OnSecuritySystemZoneStateChanged;
 
             zone.BypassDelegate = delegate (int zoneIdx, int areaIdx, string password)
@@ -788,26 +722,17 @@ namespace SecuritySystem_Elk_M1_IP_v1
             if (handler != null)
             {
                 int listIndex = _zones.IndexOf(zone);
-                handler(this, new ListChangedEventArgs<ISecuritySystemZone>(
-                    ListChangedAction.Added,
-                    null,
-                    zone,
-                    listIndex));
+                handler(
+                    this,
+                    new ListChangedEventArgs<ISecuritySystemZone>(
+                        ListChangedAction.Added,
+                        null,
+                        zone,
+                        listIndex));
             }
         }
 
-        private SecuritySystemArea EnsureSelectedAreaContainer()
-        {
-            SecuritySystemArea existing;
-            if (_areaLookup.TryGetValue(_selectedArea, out existing))
-            {
-                return existing;
-            }
-
-            return EnsureAreaExists(_selectedArea);
-        }
-
-        private SecuritySystemArea EnsureAreaExists(int areaIndex)
+        private SecuritySystemArea EnsureAreaExists(int areaIndex, bool publishEvent)
         {
             SecuritySystemArea area;
             if (_areaLookup.TryGetValue(areaIndex, out area))
@@ -844,33 +769,22 @@ namespace SecuritySystem_Elk_M1_IP_v1
             _areaLookup[areaIndex] = area;
             _areas.Add(area);
 
-            EventHandler<ListChangedEventArgs<ISecuritySystemArea>> handler = AreaListChanged;
-            if (handler != null)
+            if (publishEvent)
             {
-                handler(
-                    this,
-                    new ListChangedEventArgs<ISecuritySystemArea>(
-                        ListChangedAction.Added,
-                        null,
-                        area,
-                        _areas.Count - 1));
+                EventHandler<ListChangedEventArgs<ISecuritySystemArea>> handler = AreaListChanged;
+                if (handler != null)
+                {
+                    handler(
+                        this,
+                        new ListChangedEventArgs<ISecuritySystemArea>(
+                            ListChangedAction.Added,
+                            null,
+                            area,
+                            _areas.Count - 1));
+                }
             }
 
             return area;
-        }
-
-        private void EnsureConfiguredZonesExist()
-        {
-            foreach (int zoneNumber in _configuredZoneSet.OrderBy(x => x))
-            {
-                bool isNew;
-                FindOrCreateZone(zoneNumber, out isNew);
-            }
-        }
-
-        private bool ShouldExposeZone(int zoneNumber)
-        {
-            return _configuredZoneSet.Contains(zoneNumber);
         }
 
         private SecuritySystemZone GetZone(int zoneIndex)
@@ -883,10 +797,10 @@ namespace SecuritySystem_Elk_M1_IP_v1
         {
             if (areaIndexes == null || areaIndexes.Count == 0)
             {
-                return _selectedArea;
+                return 1;
             }
 
-            return areaIndexes[0] > 0 ? areaIndexes[0] : _selectedArea;
+            return areaIndexes[0] > 0 ? areaIndexes[0] : 1;
         }
 
         private void SetConnected(bool connected)
@@ -1066,67 +980,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
                     CrestronConsole.PrintLine("Async task failed: " + t.Exception.GetBaseException().Message);
                 }
             });
-        }
-
-        private static HashSet<int> ParseZoneExpression(string expression)
-        {
-            HashSet<int> zones = new HashSet<int>();
-
-            if (string.IsNullOrWhiteSpace(expression))
-            {
-                return zones;
-            }
-
-            string[] parts = expression.Split(',');
-            foreach (string rawPart in parts)
-            {
-                string part = rawPart.Trim();
-                if (string.IsNullOrEmpty(part))
-                {
-                    continue;
-                }
-
-                int dashIndex = part.IndexOf('-');
-                if (dashIndex > 0)
-                {
-                    string startText = part.Substring(0, dashIndex).Trim();
-                    string endText = part.Substring(dashIndex + 1).Trim();
-
-                    int start;
-                    int end;
-
-                    if (int.TryParse(startText, out start) && int.TryParse(endText, out end))
-                    {
-                        if (start > end)
-                        {
-                            int temp = start;
-                            start = end;
-                            end = temp;
-                        }
-
-                        for (int i = start; i <= end; i++)
-                        {
-                            if (i >= 1 && i <= 208)
-                            {
-                                zones.Add(i);
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    int zone;
-                    if (int.TryParse(part, out zone))
-                    {
-                        if (zone >= 1 && zone <= 208)
-                        {
-                            zones.Add(zone);
-                        }
-                    }
-                }
-            }
-
-            return zones;
         }
     }
 

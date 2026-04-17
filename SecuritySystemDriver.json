@@ -34,32 +34,6 @@
     "UserAttributes": [
       {
         "TypeName": "Custom",
-        "ParameterId": "MonitoredZones",
-        "Label": "Number of monitored zones",
-        "Description": "Zone list/ranges to monitor. Example: 1-4,8,10,15-25",
-        "Persistent": true,
-        "RequiredForConnection": "Before",
-        "Data": {
-          "DataType": "String",
-          "Mask": "",
-          "DefaultValue": "1-8"
-        }
-      },
-      {
-        "TypeName": "Custom",
-        "ParameterId": "AreaNumber",
-        "Label": "Number of the area or partition",
-        "Description": "Elk area/partition number. Valid range: 1-8",
-        "Persistent": true,
-        "RequiredForConnection": "Before",
-        "Data": {
-          "DataType": "String",
-          "Mask": "",
-          "DefaultValue": "1"
-        }
-      },
-      {
-        "TypeName": "Custom",
         "ParameterId": "KeypadNumber",
         "Label": "Keypad",
         "Description": "Elk keypad number. Valid range: 1-16",

@@ -37,12 +37,12 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
         private readonly string[] _functionButtonLabels =
         {
-            "Stay",
-            "Away",
-            "Disarm",
-            "Fire",
-            "Aux",
-            "Custom"
+            "F1",
+            "F2",
+            "F3",
+            "F4",
+            "F5",
+            "F6"
         };
 
         private readonly object _sync = new object();
@@ -330,6 +330,21 @@ namespace SecuritySystem_Elk_M1_IP_v1
         {
         }
 
+        public void SetFunctionButtonLabel(int buttonNumber, string label)
+        {
+            if (buttonNumber < 1 || buttonNumber > 6)
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(label))
+            {
+                label = "F" + buttonNumber;
+            }
+
+            _functionButtonLabels[buttonNumber - 1] = label.Trim();
+        }
+
         public string GetFunctionButtonLabel(int buttonNumber)
         {
             if (buttonNumber < 1 || buttonNumber > 6)
@@ -383,7 +398,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
             }
         }
 
-        public SecuritySystemOperationalResult SetZoneBypass(int zoneIndex, bool bypass, string password)
+public SecuritySystemOperationalResult SetZoneBypass(int zoneIndex, bool bypass, string password)
         {
             SecuritySystemZone zone = GetZone(zoneIndex);
             if (zone == null)

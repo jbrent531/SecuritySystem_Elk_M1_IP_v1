@@ -8,6 +8,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
     {
         private readonly ElkSystemState _state;
         private readonly Dictionary<int, char> _lastLoggedZoneRawStatus = new Dictionary<int, char>();
+        private readonly Dictionary<int, string> _functionKeyNames = new Dictionary<int, string>();
 
         public ElkCommandRouter(ElkSystemState state)
         {
@@ -18,6 +19,18 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
             _state = state;
         }
+
+        public string GetFunctionKeyName(int functionKeyNumber)
+        {
+            string value;
+            if (_functionKeyNames.TryGetValue(functionKeyNumber, out value))
+            {
+                return value;
+            }
+
+            return string.Empty;
+        }
+
 
         public void Handle(ElkPacket packet)
         {

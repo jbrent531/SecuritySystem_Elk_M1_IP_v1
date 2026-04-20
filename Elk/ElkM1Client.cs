@@ -43,6 +43,18 @@ namespace SecuritySystem_Elk_M1_IP_v1
         public Task ArmAwayAsync(int area, string code) => SendArmCommandAsync("a1", area, code);
         public Task DisarmAsync(int area, string code) => SendArmCommandAsync("a0", area, code);
 
+        public Task PressFunctionKeyAsync(int keypadNumber, int functionKeyNumber)
+        {
+            if (keypadNumber < 1 || keypadNumber > 16)
+                throw new ArgumentOutOfRangeException(nameof(keypadNumber), "Keypad number must be between 1 and 16.");
+
+            if (functionKeyNumber < 1 || functionKeyNumber > 6)
+                throw new ArgumentOutOfRangeException(nameof(functionKeyNumber), "Function key number must be between 1 and 6.");
+
+            string data = $"{keypadNumber:D2}{functionKeyNumber}00";
+            return SendRawCommandAsync("kf", data);
+        }
+
         private Task SendArmCommandAsync(string command, int area, string code)
         {
             if (string.IsNullOrWhiteSpace(command) || command.Length != 2)

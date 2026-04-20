@@ -46,7 +46,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 Color = SecuritySystemKeypadLedColors.Green
             };
 
-            FunctionButtons = new SecuritySystemKeypadFunctionButton[7];
+            FunctionButtons = new SecuritySystemKeypadFunctionButton[8];
             FunctionButtons[0] = new SecuritySystemKeypadFunctionButton(0)
             {
                 FunctionType = SecuritySystemKeypadFunctionType.Function,
@@ -94,6 +94,13 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 FunctionType = SecuritySystemKeypadFunctionType.Function,
                 Icon = SecuritySystemKeypadFunctionButtonIcon.Blank,
                 Label = new KeypadLabels() { PrimaryLabel = "Bypass All" }
+            };
+
+            FunctionButtons[7] = new SecuritySystemKeypadFunctionButton(7)
+            {
+                FunctionType = SecuritySystemKeypadFunctionType.Function,
+                Icon = SecuritySystemKeypadFunctionButtonIcon.Blank,
+                Label = new KeypadLabels() { PrimaryLabel = "Chime" }
             };
         }
 
@@ -798,11 +805,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
             indicatorState.State = type;
             led.State = indicatorState;
             ToggleLedState(led);
-        }
-
-        private void PrintSampleUserAttribute()
-        {
-            SecuritySystemProtocol.PrintAttributeValue();
         }
 
         private void ToggleLedState(ISecuritySystemKeypadLed newLed)

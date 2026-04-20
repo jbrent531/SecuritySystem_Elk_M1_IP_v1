@@ -29,5 +29,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
         Task ArmStayAsync(int area, string userCode);
         Task ArmAwayAsync(int area, string userCode);
         Task DisarmAsync(int area, string userCode);
+
+        Task PressFunctionKeyAsync(int keypadNumber, int functionKeyNumber);
     }
 }

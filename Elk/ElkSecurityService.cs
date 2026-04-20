@@ -112,9 +112,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
         public async Task RefreshZoneNamesAsync()
         {
-            int zone;
-
-            for (zone = 1; zone <= 208; zone++)
+            for (int zone = 1; zone <= 208; zone++)
             {
                 await _client.RequestTextDescriptionAsync(0, zone);
                 await Task.Delay(20);
@@ -134,6 +132,11 @@ namespace SecuritySystem_Elk_M1_IP_v1
         public Task DisarmAsync(int area, string userCode)
         {
             return _client.DisarmAsync(area, userCode);
+        }
+
+        public Task PressFunctionKeyAsync(int keypadNumber, int functionKeyNumber)
+        {
+            return _client.PressFunctionKeyAsync(keypadNumber, functionKeyNumber);
         }
 
         private async Task InitialSyncAsync()
@@ -164,12 +167,17 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 await _client.RequestTextDescriptionAsync(0, zone).ConfigureAwait(false);
                 await Task.Delay(20).ConfigureAwait(false);
             }
+
+            for (int functionKey = 1; functionKey <= 6; functionKey++)
+            {
+                await _client.RequestTextDescriptionAsync(11 + functionKey, functionKey).ConfigureAwait(false);
+                await Task.Delay(20).ConfigureAwait(false);
+            }
         }
 
         public async Task RefreshAreaNamesAsync()
         {
-            int area;
-            for (area = 1; area <= 8; area++)
+            for (int area = 1; area <= 8; area++)
             {
                 await _client.RequestTextDescriptionAsync(1, area);
                 await Task.Delay(20);

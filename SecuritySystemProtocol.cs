@@ -71,7 +71,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
             _port = 2101;
 
             InitializeElkService();
-            EnsureAreaExists(_selectedArea);
         }
 
         public ReadOnlyCollection<ISecuritySystemArea> Areas { get; private set; }
@@ -153,10 +152,8 @@ namespace SecuritySystem_Elk_M1_IP_v1
                         _selectedArea = area;
                         _hasAreaNumber = true;
 
-                        EnsureSelectedAreaContainer();
                         TryInitializeStructure();
 
-                        PublishCurrentState();
                         LogMessage("AreaNumber set to " + _selectedArea);
                         break;
                     }
@@ -575,20 +572,11 @@ namespace SecuritySystem_Elk_M1_IP_v1
                     await Task.Delay(_startupDelaySeconds * 1000).ConfigureAwait(false);
                 }
 
-                TryInitializeStructure();
-
                 await _elkService.StartAsync(_host, _port).ConfigureAwait(false);
 
+                TryInitializeStructure();
+                PublishCurrentState();
                 SetConnected(true);
-
-                try
-                {
-                    PublishCurrentState();
-                }
-                catch (Exception ex)
-                {
-                    LogMessage("PublishCurrentState failed: " + ex.Message);
-                }
             }
             catch (Exception ex)
             {

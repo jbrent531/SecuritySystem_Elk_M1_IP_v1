@@ -8,7 +8,7 @@
       "SupportsPassword": true
     },
     "GeneralInformation": {
-      "BaseModel": "M1 - Basic",
+      "BaseModel": "M1",
       "Description": "Single Area Driver for M1",
       "DeviceType": "Security System",
       "DriverVersion": "27.000.021",

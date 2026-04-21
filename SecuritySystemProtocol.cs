@@ -135,8 +135,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
                         _configuredZoneSet = ParseZoneExpression(_monitoredZones);
                         _hasMonitoredZones = true;
 
-                        TryInitializeStructure();
-
                         LogMessage("MonitoredZones set to " + _monitoredZones);
                         break;
                     }
@@ -151,8 +149,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
                         _selectedArea = area;
                         _hasAreaNumber = true;
-
-                        TryInitializeStructure();
 
                         LogMessage("AreaNumber set to " + _selectedArea);
                         break;
@@ -567,16 +563,24 @@ namespace SecuritySystem_Elk_M1_IP_v1
         {
             try
             {
+                await _elkService.StartAsync(_host, _port).ConfigureAwait(false);
+                LogMessage("Elk connection established");
+
                 if (_startupDelaySeconds > 0)
                 {
+                    LogMessage("Delaying area startup by " + _startupDelaySeconds + " seconds");
                     await Task.Delay(_startupDelaySeconds * 1000).ConfigureAwait(false);
                 }
 
-                await _elkService.StartAsync(_host, _port).ConfigureAwait(false);
-
                 TryInitializeStructure();
-                PublishCurrentState();
+                LogMessage("Area structure created");
+
+                await Task.Delay(2000).ConfigureAwait(false);
+
                 SetConnected(true);
+                LogMessage("Connected set true");
+
+                FireAndForget(PublishConfiguredZonesAfterReadyAsync());
             }
             catch (Exception ex)
             {
@@ -584,6 +588,67 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 HandleDisconnected();
             }
         }
+
+        private async Task PublishConfiguredZonesAfterReadyAsync()
+        {
+            try
+            {
+                await Task.Delay(5000).ConfigureAwait(false);
+
+                lock (_sync)
+                {
+                    if (!_started || !_structureInitialized)
+                    {
+                        return;
+                    }
+                }
+
+                foreach (int zoneNumber in _configuredZoneSet.OrderBy(x => x))
+                {
+                    ElkZone elkZone;
+                    if (_elkService == null || !_elkService.Zones.TryGetValue(zoneNumber, out elkZone) || elkZone == null)
+                    {
+                        continue;
+                    }
+
+                    bool isNew;
+                    FindOrCreateZone(zoneNumber, out isNew);
+                    OnElkZoneChanged(elkZone);
+
+                    LogMessage("Published zone " + zoneNumber);
+
+                    await Task.Delay(500).ConfigureAwait(false);
+                }
+
+                PublishAreaStateAfterZones();
+            }
+            catch (Exception ex)
+            {
+                LogMessage("PublishConfiguredZonesAfterReadyAsync failed: " + ex.Message);
+            }
+        }
+
+
+        private void PublishAreaStateAfterZones()
+        {
+            if (_elkService == null || !_structureInitialized)
+            {
+                return;
+            }
+
+            ElkArea area;
+            if (_elkService.Areas.TryGetValue(_selectedArea, out area) && area != null)
+            {
+                OnElkAreaChanged(area);
+            }
+
+            OnElkSystemReadyChanged(_elkService.IsSystemReady);
+            OnElkAlarmActiveChanged(_elkService.IsAlarmActive);
+
+            LogMessage("Area/state published after zones");
+        }
+
+
 
         private async Task DelayedSecondDisarmAsync(int area, string password)
         {
@@ -616,12 +681,12 @@ namespace SecuritySystem_Elk_M1_IP_v1
             }
 
             EnsureSelectedAreaContainer();
-            EnsureConfiguredZonesExist();
 
             _structureInitialized = true;
 
             LogMessage("Structure initialized for area " + _selectedArea + " zones=" + _monitoredZones);
         }
+
 
         private void PublishCurrentState()
         {
@@ -630,14 +695,10 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 return;
             }
 
-            foreach (ElkArea area in _elkService.Areas.Values)
+            ElkArea area;
+            if (_elkService.Areas.TryGetValue(_selectedArea, out area) && area != null)
             {
                 OnElkAreaChanged(area);
-            }
-
-            foreach (ElkZone zone in _elkService.Zones.Values)
-            {
-                OnElkZoneChanged(zone);
             }
 
             OnElkSystemReadyChanged(_elkService.IsSystemReady);

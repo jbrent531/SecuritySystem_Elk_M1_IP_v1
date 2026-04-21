@@ -92,8 +92,22 @@ namespace SecuritySystem_Elk_M1_IP_v1
         public IEnumerable<KeyValuePair<int, ISecuritySystemZone>> GetZones()
         {
             EnsureAreaZonesLoaded();
-            return _zonesInArea.OrderBy(x => x.Key);
+
+            return _zonesInArea
+                .OrderBy(kvp => kvp.Key)
+                .ToList();
         }
+
+        public IEnumerable<ISecuritySystemZone> GetVisibleZones()
+        {
+            EnsureAreaZonesLoaded();
+
+            return _zonesInArea
+                .OrderBy(kvp => kvp.Key)
+                .Select(kvp => kvp.Value)
+                .ToList();
+        }
+
 
         public SecuritySystemOperationalResult SendAreaCommand(int commandIndex, string password)
         {
@@ -135,6 +149,8 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
         private void EnsureAreaZonesLoaded()
         {
+            _zonesInArea.Clear();
+
             if (_securitySystemProtocol == null || _securitySystemProtocol.Zones == null)
             {
                 return;
@@ -175,9 +191,13 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 return;
             }
 
-            if (!_zonesInArea.ContainsKey(zone.Index))
+            bool alreadyExists = _zonesInArea.ContainsKey(zone.Index);
+
+            EnsureAreaZonesLoaded();
+
+            if (alreadyExists)
             {
-                _zonesInArea.Add(zone.Index, zone);
+                return;
             }
 
             EventHandler<ListChangedEventArgs<ISecuritySystemZone>> handler = ZoneListChangedEvent;
@@ -185,14 +205,15 @@ namespace SecuritySystem_Elk_M1_IP_v1
             {
                 int addedIndex = GetZoneIndex(zone.Index);
 
-                handler(this, new ListChangedEventArgs<ISecuritySystemZone>(
-                    ListChangedAction.Added,
-                    null,
-                    zone,
-                    addedIndex));
+                handler(
+                    this,
+                    new ListChangedEventArgs<ISecuritySystemZone>(
+                        ListChangedAction.Added,
+                        null,
+                        zone,
+                        addedIndex));
             }
         }
-
         private int GetZoneIndex(int zoneIndex)
         {
             int i = 0;
@@ -206,7 +227,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 i++;
             }
 
-            return 0;
+            return -1;
         }
 
         private void OnProtocolKeypadChanged(object changedObject)

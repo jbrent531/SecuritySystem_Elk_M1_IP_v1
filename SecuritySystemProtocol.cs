@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
 using Crestron.RAD.Common.BasicDriver;
 using Crestron.RAD.Common.Enums;
@@ -21,6 +20,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
         private readonly List<ISecuritySystemArea> _areas;
         private readonly Dictionary<int, SecuritySystemZone> _zoneLookup;
         private readonly Dictionary<int, SecuritySystemArea> _areaLookup;
+        private readonly HashSet<int> _discoveredAreaNumbers = new HashSet<int>();
 
         private IElkSecurityService _elkService;
         private string _host;
@@ -573,6 +573,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 }
 
                 TryInitializeStructure();
+                ReconcilePublishedAreas();
                 LogMessage("Area structure created");
 
                 await Task.Delay(2000).ConfigureAwait(false);
@@ -603,10 +604,20 @@ namespace SecuritySystem_Elk_M1_IP_v1
                     }
                 }
 
-                foreach (int zoneNumber in _configuredZoneSet.OrderBy(x => x))
+                if (_elkService == null)
+                {
+                    return;
+                }
+
+                foreach (int zoneNumber in _elkService.Zones.Keys.OrderBy(x => x))
                 {
                     ElkZone elkZone;
-                    if (_elkService == null || !_elkService.Zones.TryGetValue(zoneNumber, out elkZone) || elkZone == null)
+                    if (!_elkService.Zones.TryGetValue(zoneNumber, out elkZone) || elkZone == null)
+                    {
+                        continue;
+                    }
+
+                    if (!elkZone.IsConfigured)
                     {
                         continue;
                     }
@@ -648,7 +659,75 @@ namespace SecuritySystem_Elk_M1_IP_v1
             LogMessage("Area/state published after zones");
         }
 
+        private void RebuildDiscoveredAreaNumbers()
+        {
+            _discoveredAreaNumbers.Clear();
 
+            if (_elkService == null)
+            {
+                return;
+            }
+
+            foreach (var kvp in _elkService.Zones)
+            {
+                ElkZone zone = kvp.Value;
+                if (zone == null || !zone.IsConfigured)
+                {
+                    continue;
+                }
+
+                if (zone.Partition >= 1 && zone.Partition <= 8)
+                {
+                    _discoveredAreaNumbers.Add(zone.Partition);
+                }
+            }
+
+            if (_discoveredAreaNumbers.Count == 0)
+            {
+                _discoveredAreaNumbers.Add(1);
+            }
+        }
+
+        private void ReconcilePublishedAreas()
+        {
+            RebuildDiscoveredAreaNumbers();
+
+            List<int> existingAreaIds = _areaLookup.Keys.ToList();
+
+            foreach (int areaId in existingAreaIds)
+            {
+                if (_discoveredAreaNumbers.Contains(areaId))
+                {
+                    continue;
+                }
+
+                SecuritySystemArea removedArea;
+                if (_areaLookup.TryGetValue(areaId, out removedArea))
+                {
+                    int index = _areas.IndexOf(removedArea);
+
+                    _areaLookup.Remove(areaId);
+                    _areas.Remove(removedArea);
+
+                    EventHandler<ListChangedEventArgs<ISecuritySystemArea>> handler = AreaListChanged;
+                    if (handler != null && index >= 0)
+                    {
+                        handler(
+                            this,
+                            new ListChangedEventArgs<ISecuritySystemArea>(
+                                ListChangedAction.Removed,
+                                removedArea,
+                                null,
+                                index));
+                    }
+                }
+            }
+
+            foreach (int areaId in _discoveredAreaNumbers.OrderBy(x => x))
+            {
+                EnsureAreaExists(areaId);
+            }
+        }
 
         private async Task DelayedSecondDisarmAsync(int area, string password)
         {
@@ -675,17 +754,67 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 return;
             }
 
-            if (!_hasAreaNumber || !_hasMonitoredZones)
+            if (_elkService == null)
             {
                 return;
             }
 
-            EnsureSelectedAreaContainer();
+            EnsureDiscoveredAreasExist();
 
             _structureInitialized = true;
 
-            LogMessage("Structure initialized for area " + _selectedArea + " zones=" + _monitoredZones);
+            LogMessage("Structure initialized from ELK discovery");
         }
+
+        private void EnsureDiscoveredAreasExist()
+        {
+            if (_elkService == null)
+            {
+                return;
+            }
+
+            _discoveredAreaNumbers.Clear();
+
+            foreach (var kvp in _elkService.Zones)
+            {
+                ElkZone zone = kvp.Value;
+                if (zone == null || !zone.IsConfigured)
+                {
+                    continue;
+                }
+
+                if (zone.Partition >= 1 && zone.Partition <= 8)
+                {
+                    _discoveredAreaNumbers.Add(zone.Partition);
+                }
+            }
+
+            foreach (var kvp in _elkService.Areas)
+            {
+                ElkArea elkArea = kvp.Value;
+                if (elkArea == null)
+                {
+                    continue;
+                }
+
+                if (!string.IsNullOrWhiteSpace(elkArea.Name) && elkArea.Name.Trim() != ("Area " + elkArea.Number))
+                {
+                    _discoveredAreaNumbers.Add(elkArea.Number);
+                }
+            }
+
+            foreach (int areaNumber in _discoveredAreaNumbers.OrderBy(x => x))
+            {
+                EnsureAreaExists(areaNumber);
+            }
+
+            if (_areas.Count == 0)
+            {
+                _discoveredAreaNumbers.Add(1);
+                EnsureAreaExists(1);
+            }
+        }
+
 
 
         private void PublishCurrentState()
@@ -712,7 +841,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 return;
             }
 
-            if (elkArea.Number != _selectedArea)
+            if (!_discoveredAreaNumbers.Contains(elkArea.Number))
             {
                 return;
             }
@@ -819,12 +948,15 @@ namespace SecuritySystem_Elk_M1_IP_v1
         private ISecuritySystemZone FindOrCreateZone(int zoneNumber, out bool isNew)
         {
             SecuritySystemZone existing;
+            int areaIndex = GetZoneAreaIndex(zoneNumber);
+
             if (_zoneLookup.TryGetValue(zoneNumber, out existing))
             {
-                existing.SetAreaIndex(_selectedArea);
+                existing.SetAreaIndex(areaIndex);
                 isNew = false;
                 return existing;
             }
+
 
             SecuritySystemZone zone = new SecuritySystemZone("Zone " + zoneNumber.ToString("D3"), zoneNumber, _selectedArea);
             zone.SecuritySystemZoneStateChanged += OnSecuritySystemZoneStateChanged;
@@ -845,6 +977,23 @@ namespace SecuritySystem_Elk_M1_IP_v1
             isNew = true;
             PublishZoneAdded(zone);
             return zone;
+        }
+
+        private int GetZoneAreaIndex(int zoneNumber)
+        {
+            if (_elkService != null)
+            {
+                ElkZone elkZone;
+                if (_elkService.Zones.TryGetValue(zoneNumber, out elkZone) &&
+                    elkZone != null &&
+                    elkZone.Partition >= 1 &&
+                    elkZone.Partition <= 8)
+                {
+                    return elkZone.Partition;
+                }
+            }
+
+            return 1;
         }
 
         private void PublishZoneAdded(ISecuritySystemZone zone)
@@ -935,7 +1084,18 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
         private bool ShouldExposeZone(int zoneNumber)
         {
-            return _configuredZoneSet.Contains(zoneNumber);
+            if (_elkService == null)
+            {
+                return false;
+            }
+
+            ElkZone zone;
+            if (!_elkService.Zones.TryGetValue(zoneNumber, out zone) || zone == null)
+            {
+                return false;
+            }
+
+            return zone.IsConfigured;
         }
 
         private SecuritySystemZone GetZone(int zoneIndex)

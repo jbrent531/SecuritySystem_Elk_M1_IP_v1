@@ -138,19 +138,22 @@ namespace SecuritySystem_Elk_M1_IP_v1
         private async Task InitialSyncAsync()
         {
             await _client.RequestArmingStatusAsync();
-            await Task.Delay(100);
+            await Task.Delay(250);
 
             await _client.RequestZoneStatusAsync();
-            await Task.Delay(100);
+            await Task.Delay(250);
 
             await _client.RequestZoneDefinitionsAsync();
-            await Task.Delay(100);
+            await Task.Delay(250);
 
             await _client.RequestZonePartitionsAsync();
-            await Task.Delay(100);
+            await Task.Delay(250);
 
             await RefreshZoneNamesAsync();
+            await Task.Delay(250);
+
             await RefreshAreaNamesAsync();
+            await Task.Delay(250);
         }
 
         public async Task RefreshAreaNamesAsync()

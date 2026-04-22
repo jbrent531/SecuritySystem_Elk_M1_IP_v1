@@ -647,10 +647,13 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 return;
             }
 
-            ElkArea area;
-            if (_elkService.Areas.TryGetValue(_selectedArea, out area) && area != null)
+            foreach (int areaNumber in _discoveredAreaNumbers.OrderBy(x => x))
             {
-                OnElkAreaChanged(area);
+                ElkArea area;
+                if (_elkService.Areas.TryGetValue(areaNumber, out area) && area != null)
+                {
+                    OnElkAreaChanged(area);
+                }
             }
 
             OnElkSystemReadyChanged(_elkService.IsSystemReady);
@@ -816,24 +819,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
         }
 
 
-
-        private void PublishCurrentState()
-        {
-            if (_elkService == null || !_structureInitialized)
-            {
-                return;
-            }
-
-            ElkArea area;
-            if (_elkService.Areas.TryGetValue(_selectedArea, out area) && area != null)
-            {
-                OnElkAreaChanged(area);
-            }
-
-            OnElkSystemReadyChanged(_elkService.IsSystemReady);
-            OnElkAlarmActiveChanged(_elkService.IsAlarmActive);
-        }
-
         private void OnElkAreaChanged(ElkArea elkArea)
         {
             if (elkArea == null || !_structureInitialized)
@@ -872,6 +857,104 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
             RaiseKeypadAlarmChangedEvent(SecuritySystemAlarmType.Alarm, burglaryActive);
             RaiseKeypadAlarmChangedEvent(SecuritySystemAlarmType.Burglary, burglaryActive);
+        }
+
+
+        private void PublishCurrentState()
+        {
+            if (_elkService == null || !_structureInitialized)
+            {
+                return;
+            }
+
+            foreach (int areaNumber in _discoveredAreaNumbers.OrderBy(x => x))
+            {
+                ElkArea area;
+                if (_elkService.Areas.TryGetValue(areaNumber, out area) && area != null)
+                {
+                    OnElkAreaChanged(area);
+                }
+            }
+
+            OnElkSystemReadyChanged(_elkService.IsSystemReady);
+            OnElkAlarmActiveChanged(_elkService.IsAlarmActive);
+        }
+
+        private SecuritySystemArea EnsureAreaExists(int areaIndex)
+        {
+            SecuritySystemArea area;
+            if (_areaLookup.TryGetValue(areaIndex, out area))
+            {
+                if (_elkService != null)
+                {
+                    ElkArea elkAreaExisting;
+                    if (_elkService.Areas.TryGetValue(areaIndex, out elkAreaExisting) &&
+                        elkAreaExisting != null &&
+                        !string.IsNullOrWhiteSpace(elkAreaExisting.Name) &&
+                        !string.Equals(area.Name, elkAreaExisting.Name, StringComparison.Ordinal))
+                    {
+                        area.Name = elkAreaExisting.Name;
+                    }
+                }
+
+                return area;
+            }
+
+            ReadOnlyCollection<SecuritySystemState> supportedStates = new List<SecuritySystemState>
+                {
+                    SecuritySystemState.ArmedAway,
+                    SecuritySystemState.ArmedStay,
+                    SecuritySystemState.Disarmed
+                }.AsReadOnly();
+
+            ReadOnlyCollection<SecuritySystemAlarmType> supportedAlarms = new List<SecuritySystemAlarmType>
+                {
+                    SecuritySystemAlarmType.Alarm,
+                    SecuritySystemAlarmType.Burglary,
+                    SecuritySystemAlarmType.Fire,
+                    SecuritySystemAlarmType.Tamper
+                }.AsReadOnly();
+
+            ReadOnlyCollection<SecuritySystemAreaCommand> areaCommands = new List<SecuritySystemAreaCommand>
+                {
+                    new SecuritySystemAreaCommand(1, SecuritySystemCommandType.Disarm, true),
+                    new SecuritySystemAreaCommand(2, SecuritySystemCommandType.Away, true),
+                    new SecuritySystemAreaCommand(3, SecuritySystemCommandType.Stay, true)
+                }.AsReadOnly();
+
+            string areaName = "Area " + areaIndex;
+
+            if (_elkService != null)
+            {
+                ElkArea elkArea;
+                if (_elkService.Areas.TryGetValue(areaIndex, out elkArea) &&
+                    elkArea != null &&
+                    !string.IsNullOrWhiteSpace(elkArea.Name))
+                {
+                    areaName = elkArea.Name;
+                }
+            }
+
+            area = new SecuritySystemArea(areaName, areaIndex, supportedStates, supportedAlarms, areaCommands, this);
+            area.SecuritysystemAreaStateChangedEvent += OnSecuritysystemAreaStateChangedEvent;
+            area.SecuritysystemAlarmStateChangedEvent += OnSecuritysystemAlarmStateChangedEvent;
+
+            _areaLookup[areaIndex] = area;
+            _areas.Add(area);
+
+            EventHandler<ListChangedEventArgs<ISecuritySystemArea>> handler = AreaListChanged;
+            if (handler != null)
+            {
+                handler(
+                    this,
+                    new ListChangedEventArgs<ISecuritySystemArea>(
+                        ListChangedAction.Added,
+                        null,
+                        area,
+                        _areas.Count - 1));
+            }
+
+            return area;
         }
 
         private void OnElkSystemReadyChanged(bool ready)
@@ -1021,57 +1104,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
             return EnsureAreaExists(_selectedArea);
         }
 
-        private SecuritySystemArea EnsureAreaExists(int areaIndex)
-        {
-            SecuritySystemArea area;
-            if (_areaLookup.TryGetValue(areaIndex, out area))
-            {
-                return area;
-            }
 
-            ReadOnlyCollection<SecuritySystemState> supportedStates = new List<SecuritySystemState>
-            {
-                SecuritySystemState.ArmedAway,
-                SecuritySystemState.ArmedStay,
-                SecuritySystemState.Disarmed
-            }.AsReadOnly();
-
-            ReadOnlyCollection<SecuritySystemAlarmType> supportedAlarms = new List<SecuritySystemAlarmType>
-            {
-                SecuritySystemAlarmType.Alarm,
-                SecuritySystemAlarmType.Burglary,
-                SecuritySystemAlarmType.Fire,
-                SecuritySystemAlarmType.Tamper
-            }.AsReadOnly();
-
-            ReadOnlyCollection<SecuritySystemAreaCommand> areaCommands = new List<SecuritySystemAreaCommand>
-            {
-                new SecuritySystemAreaCommand(1, SecuritySystemCommandType.Disarm, true),
-                new SecuritySystemAreaCommand(2, SecuritySystemCommandType.Away, true),
-                new SecuritySystemAreaCommand(3, SecuritySystemCommandType.Stay, true)
-            }.AsReadOnly();
-
-            area = new SecuritySystemArea("Area " + areaIndex, areaIndex, supportedStates, supportedAlarms, areaCommands, this);
-            area.SecuritysystemAreaStateChangedEvent += OnSecuritysystemAreaStateChangedEvent;
-            area.SecuritysystemAlarmStateChangedEvent += OnSecuritysystemAlarmStateChangedEvent;
-
-            _areaLookup[areaIndex] = area;
-            _areas.Add(area);
-
-            EventHandler<ListChangedEventArgs<ISecuritySystemArea>> handler = AreaListChanged;
-            if (handler != null)
-            {
-                handler(
-                    this,
-                    new ListChangedEventArgs<ISecuritySystemArea>(
-                        ListChangedAction.Added,
-                        null,
-                        area,
-                        _areas.Count - 1));
-            }
-
-            return area;
-        }
 
         private void EnsureConfiguredZonesExist()
         {

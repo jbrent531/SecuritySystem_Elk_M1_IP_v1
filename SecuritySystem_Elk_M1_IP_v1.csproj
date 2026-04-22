@@ -216,6 +216,7 @@
     <Compile Include="Elk\ElkSecurityService.cs" />
     <Compile Include="Elk\ElkSystemState.cs" />
     <Compile Include="Elk\ElkZone.cs" />
+    <Compile Include="Elk\ElkZoneDefinition.cs" />
     <Compile Include="Elk\ElkZoneMapper.cs" />
     <Compile Include="Elk\ElkZoneNameMapper.cs" />
     <Compile Include="Elk\ElkZoneStatusDecoder.cs" />

@@ -17,6 +17,9 @@ namespace SecuritySystem_Elk_M1_IP_v1
         private readonly List<SecuritySystemZoneState> _supportedStates;
         private string _name;
 
+        public int NormalPhysicalState { get; set; }
+        public bool IsFaulted { get; set; }
+
         internal Action<int, int, string> BypassDelegate;
         internal Action<int, int, string> UnbypassDelegate;
 
@@ -55,35 +58,49 @@ namespace SecuritySystem_Elk_M1_IP_v1
         public SecuritySystemOperationalResult BypassZone(string password)
         {
             CrestronConsole.PrintLine("SecuritySystemZone: BypassZone is called");
-            SecuritySystemOperationalResult result = SetBypassState(password, true, SecuritySystemZoneState.Bypassed);
 
-            if (result.Result == SecuritySystemOperationalResultCode.Success)
+            if (string.IsNullOrEmpty(password))
             {
-                Action<int, int, string> del = BypassDelegate;
-                if (del != null)
+                return new SecuritySystemOperationalResult(0)
                 {
-                    del(Index, AreaIndex, password);
-                }
+                    Result = SecuritySystemOperationalResultCode.InvalidPasscode
+                };
             }
 
-            return result;
+            Action<int, int, string> del = BypassDelegate;
+            if (del != null)
+            {
+                del(Index, AreaIndex, password);
+            }
+
+            return new SecuritySystemOperationalResult(1)
+            {
+                Result = SecuritySystemOperationalResultCode.Success
+            };
         }
 
         public SecuritySystemOperationalResult UnbypassZone(string password)
         {
             CrestronConsole.PrintLine("SecuritySystemZone: UnbypassZone is called");
-            SecuritySystemOperationalResult result = SetBypassState(password, false, SecuritySystemZoneState.Bypassed);
 
-            if (result.Result == SecuritySystemOperationalResultCode.Success)
+            if (string.IsNullOrEmpty(password))
             {
-                Action<int, int, string> del = UnbypassDelegate;
-                if (del != null)
+                return new SecuritySystemOperationalResult(0)
                 {
-                    del(Index, AreaIndex, password);
-                }
+                    Result = SecuritySystemOperationalResultCode.InvalidPasscode
+                };
             }
 
-            return result;
+            Action<int, int, string> del = UnbypassDelegate;
+            if (del != null)
+            {
+                del(Index, AreaIndex, password);
+            }
+
+            return new SecuritySystemOperationalResult(1)
+            {
+                Result = SecuritySystemOperationalResultCode.Success
+            };
         }
 
         public SecuritySystemOperationalResult Poll()
@@ -128,14 +145,9 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
         public void ApplyElkState(string zoneName, bool isFaulted, bool isBypassed, char definition)
         {
-            if (!string.IsNullOrEmpty(zoneName))
-            {
-                Name = zoneName;
-            }
+            Name = zoneName;
 
-            ApplyElkDefinition(zoneName, definition);
-
-            bool isOk = !isFaulted && !isBypassed;
+            bool isOk = !isFaulted;
 
             UpdateActiveState(SecuritySystemZoneState.Faulted, isFaulted);
             UpdateActiveState(SecuritySystemZoneState.Bypassed, isBypassed);

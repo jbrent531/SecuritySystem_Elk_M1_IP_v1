@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Crestron.SimplSharp;
-
 
 namespace SecuritySystem_Elk_M1_IP_v1
 {
@@ -38,9 +36,14 @@ namespace SecuritySystem_Elk_M1_IP_v1
                     RawStatus = '\0',
                     StatusText = string.Empty,
                     IsOpen = false,
+                    IsTrouble = false,
+                    IsViolated = false,
+                    IsBypassed = false,
+                    IsFaulted = false,
+                    NormalPhysicalState = 0,
+                    Partition = 0,
                     Definition = '\0',
-                    IsConfigured = false,
-                    IsBypassed = false
+                    IsConfigured = false
                 };
 
                 Zones[zoneNumber] = zone;
@@ -57,10 +60,22 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 area = new ElkArea
                 {
                     Number = areaNumber,
+                    Name = string.Empty,
                     RawArmState = '\0',
+                    RawArmUpState = '\0',
+                    RawAlarmState = '\0',
                     ArmStateText = string.Empty,
+                    ArmUpStateText = string.Empty,
+                    AlarmStateText = string.Empty,
                     IsArmed = false,
-                    IsAlarm = false
+                    IsReady = false,
+                    CanForceArm = false,
+                    IsExitDelayActive = false,
+                    IsFullyArmed = false,
+                    IsBypassedArmed = false,
+                    IsAlarm = false,
+                    IsEntryDelayActive = false,
+                    DelaySeconds = 0
                 };
 
                 Areas[areaNumber] = area;
@@ -111,9 +126,12 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
             foreach (var zone in Zones.Values)
             {
-                bool isFaulted = zone.IsOpen || zone.IsViolated || zone.IsTrouble;
+                if (!zone.IsConfigured || zone.IsBypassed)
+                {
+                    continue;
+                }
 
-                if (zone.IsConfigured && isFaulted && !zone.IsBypassed)
+                if (zone.IsViolated || zone.IsTrouble)
                 {
                     ready = false;
                     break;

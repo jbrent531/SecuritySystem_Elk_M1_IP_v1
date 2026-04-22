@@ -1,49 +1,85 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using Crestron.SimplSharp;
+using System.Text;
 
-namespace SecuritySystem_Elk_M1_IP_v1
+namespace SecuritySystem_Elk_M1_IP_v1.Elk
 {
     /// <summary>
-    /// This is the helper class and used to send tranport data.
+    /// Represents a transport payload sent to the Elk system.
+    /// Handles formatting and checksum generation for outgoing messages.
     /// </summary>
     public class SendTransportData
     {
-        private CTimer _timer;
-        List<string> _data;
-        const long TIME_MS = 3000;
-        private Action<string> _dataHandler;
-        public SendTransportData(Action<string> dataHandler)
+        #region Fields
+
+        private readonly string _command;
+        private readonly string _data;
+
+        #endregion
+
+        #region Constructor
+
+        /// <summary>
+        /// Initializes a new transport packet.
+        /// </summary>
+        /// <param name="command">Two-character Elk command (e.g. "zs")</param>
+        /// <param name="data">Command payload (already formatted)</param>
+        public SendTransportData(string command, string data)
         {
-            _data = new List<string>();
-            AddData();
-            _timer = new CTimer(OnTimerTick, null, TIME_MS, TIME_MS);
-            _dataHandler = dataHandler;
+            _command = command ?? string.Empty;
+            _data = data ?? string.Empty;
         }
 
-        private void AddData()
+        #endregion
+
+        #region Public Methods
+
+        /// <summary>
+        /// Builds the final ASCII message including length + checksum.
+        /// </summary>
+        public string BuildMessage()
         {
-            _data.Add("createarea");
-            _data.Add("disarm");
-            _data.Add("alarmon");
-            _data.Add("alarmoff");
-            _data.Add("error");
+            string payload = _command + _data + "00"; // "00" reserved by Elk protocol
+
+            string length = GetLength(payload);
+            string message = length + payload;
+
+            string checksum = GetChecksum(message);
+
+            return message + checksum + "\r\n";
         }
 
-        private void OnTimerTick(object usrObj)
+        #endregion
+
+        #region Private Helpers
+
+        /// <summary>
+        /// Calculates the 2-byte ASCII hex length field.
+        /// Elk requires length of payload excluding length + CRLF.
+        /// </summary>
+        private string GetLength(string payload)
         {
-            if (_data.Count > 0)
+            int length = payload.Length;
+            return length.ToString("X2");
+        }
+
+        /// <summary>
+        /// Calculates Elk checksum (2's complement of sum).
+        /// Required for all outgoing messages.
+        /// </summary>
+        private string GetChecksum(string message)
+        {
+            int sum = 0;
+
+            foreach (char c in message)
             {
-                var op = _data.FirstOrDefault();
-                var handler = _dataHandler;
-                if (handler != null && !string.IsNullOrEmpty(op))
-                {
-                    handler(op);
-                    CrestronConsole.PrintLine("SendTransportData :  OnTimerTick : Data Hander for  {0} is done", op);
-                    _data.Remove(op);
-                }
+                sum += c;
             }
+
+            int checksum = ((~sum + 1) & 0xFF);
+
+            return checksum.ToString("X2");
         }
+
+        #endregion
     }
 }

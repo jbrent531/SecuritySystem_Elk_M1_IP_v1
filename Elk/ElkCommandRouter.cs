@@ -6,6 +6,9 @@ namespace SecuritySystem_Elk_M1_IP_v1
 {
     public sealed class ElkCommandRouter
     {
+        private const int MaxAreas = 8;
+        private const int MaxZones = 208;
+
         private readonly ElkSystemState _state;
         private readonly Dictionary<int, char> _lastLoggedZoneRawStatus = new Dictionary<int, char>();
 
@@ -25,9 +28,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
             {
                 throw new ArgumentNullException("packet");
             }
-
-             //CrestronConsole.PrintLine("ELK RX CMD=" + packet.Command + " DATA=" + packet.Data);
-
 
             switch (packet.Command)
             {
@@ -51,16 +51,16 @@ namespace SecuritySystem_Elk_M1_IP_v1
                     HandleZd(packet);
                     break;
 
+                case "ZP":
+                    HandleZp(packet);
+                    break;
+
                 case "ZC":
                     HandleZc(packet);
                     break;
 
                 case "AM":
                     HandleAm(packet);
-                    break;
-
-                case "NZ":
-                    HandleNz(packet);
                     break;
 
                 case "ZB":
@@ -79,7 +79,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
                     break;
 
                 default:
-                     CrestronConsole.PrintLine("UNHANDLED CMD: " + packet.Command + " DATA=" + packet.Data);
+                    CrestronConsole.PrintLine("UNHANDLED CMD: " + packet.Command + " DATA=" + packet.Data);
                     break;
             }
         }
@@ -94,36 +94,53 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
         private void HandleAs(ElkPacket packet)
         {
-            if (string.IsNullOrEmpty(packet.Data))
+            if (string.IsNullOrEmpty(packet.Data) || packet.Data.Length < 24)
             {
                 return;
             }
 
-            int maxAreas = packet.Data.Length;
-            if (maxAreas > 8)
+            string armStates = packet.Data.Substring(0, 8);
+            string armUpStates = packet.Data.Substring(8, 8);
+            string alarmStates = packet.Data.Substring(16, 8);
+
+            int delaySeconds = 0;
+            if (packet.Data.Length >= 26)
             {
-                maxAreas = 8;
+                int.TryParse(packet.Data.Substring(24, 2), System.Globalization.NumberStyles.HexNumber, null, out delaySeconds);
             }
 
-            for (int i = 0; i < maxAreas; i++)
+            for (int i = 0; i < MaxAreas; i++)
             {
-                int areaNumber = i + 1;
-                char raw = packet.Data[i];
+                ElkArea area = _state.GetOrCreateArea(i + 1);
 
-                var area = _state.GetOrCreateArea(areaNumber);
-                char oldRaw = area.RawArmState;
+                char oldArmState = area.RawArmState;
+                char oldArmUpState = area.RawArmUpState;
+                char oldAlarmState = area.RawAlarmState;
+                int oldDelaySeconds = area.DelaySeconds;
 
-                area.RawArmState = raw;
-                area.ArmStateText = ElkAreaStateDecoder.Decode(raw);
-                area.IsArmed = ElkAreaStateDecoder.IsArmed(raw);
-                area.IsAlarm = ElkAreaStateDecoder.IsAlarm(raw);
+                area.RawArmState = armStates[i];
+                area.RawArmUpState = armUpStates[i];
+                area.RawAlarmState = alarmStates[i];
 
-                if (oldRaw != '\0' && oldRaw != raw)
-                {
-                    Console.WriteLine("AREA CHANGED: " + area);
-                    _state.RaiseAreaChanged(area);
-                }
-                else if (oldRaw == '\0')
+                area.ArmStateText = ElkAreaStateDecoder.DecodeArmState(area.RawArmState);
+                area.ArmUpStateText = ElkAreaStateDecoder.DecodeArmUpState(area.RawArmUpState);
+                area.AlarmStateText = ElkAreaStateDecoder.DecodeAlarmState(area.RawAlarmState);
+
+                area.IsArmed = ElkAreaStateDecoder.IsArmed(area.RawArmState);
+                area.IsReady = ElkAreaStateDecoder.IsReady(area.RawArmUpState);
+                area.CanForceArm = ElkAreaStateDecoder.CanForceArm(area.RawArmUpState);
+                area.IsExitDelayActive = ElkAreaStateDecoder.IsExitDelayActive(area.RawArmUpState);
+                area.IsFullyArmed = ElkAreaStateDecoder.IsFullyArmed(area.RawArmUpState);
+                area.IsBypassedArmed = ElkAreaStateDecoder.IsBypassedArmed(area.RawArmUpState);
+                area.IsEntryDelayActive = ElkAreaStateDecoder.IsEntryDelayActive(area.RawAlarmState);
+                area.IsAlarm = ElkAreaStateDecoder.IsAlarm(area.RawAlarmState);
+                area.DelaySeconds = delaySeconds;
+
+                if (oldArmState == '\0' ||
+                    oldArmState != area.RawArmState ||
+                    oldArmUpState != area.RawArmUpState ||
+                    oldAlarmState != area.RawAlarmState ||
+                    oldDelaySeconds != area.DelaySeconds)
                 {
                     _state.RaiseAreaChanged(area);
                 }
@@ -134,35 +151,23 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
         private void HandleZs(ElkPacket packet)
         {
-             //CrestronConsole.PrintLine("HANDLE ZS RAW DATA=" + packet.Data);
+            int zoneCount = Get208ArrayLength(packet.Data);
+            if (zoneCount <= 0)
+            {
+                return;
+            }
 
-            for (int i = 0; i < packet.Data.Length; i++)
+            for (int i = 0; i < zoneCount; i++)
             {
                 int zoneNumber = i + 1;
                 char rawStatus = packet.Data[i];
 
-                var zone = _state.GetOrCreateZone(zoneNumber);
+                ElkZone zone = _state.GetOrCreateZone(zoneNumber);
                 char oldRaw = zone.RawStatus;
 
                 ElkZoneMapper.ApplyStatus(zone, rawStatus);
 
-                /*
-                 CrestronConsole.PrintLine(
-                    "ZS APPLY zone=" + zoneNumber +
-                    " raw=" + rawStatus +
-                    " text=" + ElkZoneStatusDecoder.Decode(rawStatus) +
-                    " open=" + zone.IsOpen +
-                    " violated=" + zone.IsViolated +
-                    " bypassed=" + zone.IsBypassed +
-                    " configured=" + zone.IsConfigured);
-                */
-
-                if (zone.IsConfigured && oldRaw != '\0' && oldRaw != rawStatus)
-                {
-                    LogZoneChangeUpdate(zone);
-                    _state.RaiseZoneChanged(zone);
-                }
-                else if (zone.IsConfigured && oldRaw == '\0')
+                if (zone.IsConfigured && (oldRaw == '\0' || oldRaw != rawStatus))
                 {
                     LogZoneChangeUpdate(zone);
                     _state.RaiseZoneChanged(zone);
@@ -174,24 +179,60 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
         private void HandleZd(ElkPacket packet)
         {
-            for (int i = 0; i < packet.Data.Length; i++)
+            int zoneCount = Get208ArrayLength(packet.Data);
+            if (zoneCount <= 0)
+            {
+                return;
+            }
+
+            for (int i = 0; i < zoneCount; i++)
             {
                 int zoneNumber = i + 1;
                 char rawDef = packet.Data[i];
 
-                var zone = _state.GetOrCreateZone(zoneNumber);
+                ElkZone zone = _state.GetOrCreateZone(zoneNumber);
                 zone.Definition = rawDef;
                 zone.IsConfigured = rawDef != '0';
             }
 
-             CrestronConsole.PrintLine("ZONE DEFINITIONS UPDATED.");
+            CrestronConsole.PrintLine("ZONE DEFINITIONS UPDATED.");
             _state.RecalculateDerivedState();
+        }
+
+        private void HandleZp(ElkPacket packet)
+        {
+            int zoneCount = Get208ArrayLength(packet.Data);
+            if (zoneCount <= 0)
+            {
+                return;
+            }
+
+            for (int i = 0; i < zoneCount; i++)
+            {
+                int zoneNumber = i + 1;
+                char partitionChar = packet.Data[i];
+
+                ElkZone zone = _state.GetOrCreateZone(zoneNumber);
+                int oldPartition = zone.Partition;
+
+                if (partitionChar >= '1' && partitionChar <= '8')
+                {
+                    zone.Partition = partitionChar - '0';
+                }
+                else
+                {
+                    zone.Partition = 0;
+                }
+
+                if (oldPartition != zone.Partition && zone.IsConfigured)
+                {
+                    _state.RaiseZoneChanged(zone);
+                }
+            }
         }
 
         private void HandleZc(ElkPacket packet)
         {
-            //CrestronConsole.PrintLine("HANDLE ZC RAW DATA=" + packet.Data);
-
             if (string.IsNullOrWhiteSpace(packet.Data) || packet.Data.Length < 4)
             {
                 return;
@@ -206,19 +247,10 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 return;
             }
 
-            var zone = _state.GetOrCreateZone(zoneNumber);
+            ElkZone zone = _state.GetOrCreateZone(zoneNumber);
             char oldRaw = zone.RawStatus;
 
             ElkZoneMapper.ApplyStatus(zone, rawStatus);
-
-            CrestronConsole.PrintLine(
-                "ZC APPLY zone=" + zoneNumber +
-                " raw=" + rawStatus +
-                " text=" + ElkZoneStatusDecoder.Decode(rawStatus) +
-                " open=" + zone.IsOpen +
-                " violated=" + zone.IsViolated +
-                " bypassed=" + zone.IsBypassed +
-                " configured=" + zone.IsConfigured);
 
             if (zone.IsConfigured)
             {
@@ -237,38 +269,8 @@ namespace SecuritySystem_Elk_M1_IP_v1
         {
         }
 
-        private void HandleNz(ElkPacket packet)
-        {
-            if (string.IsNullOrWhiteSpace(packet.Data) || packet.Data.Length < 3)
-            {
-                return;
-            }
-
-            string zoneText = packet.Data.Substring(0, 3);
-            string name = packet.Data.Substring(3).Trim();
-
-            int zoneNumber;
-            if (!int.TryParse(zoneText, out zoneNumber))
-            {
-                return;
-            }
-
-            var zone = _state.GetOrCreateZone(zoneNumber);
-            string oldName = zone.Name;
-
-            ElkZoneNameMapper.ApplyName(zone, name);
-
-            if (!string.Equals(oldName, zone.Name, StringComparison.Ordinal))
-            {
-                CrestronConsole.PrintLine("ZONE NAME UPDATED: " + zone.Number.ToString("D3") + " -> [" + zone.Name + "]");
-                _state.RaiseZoneNameChanged(zone);
-            }
-        }
-
         private void HandleZb(ElkPacket packet)
         {
-             //CrestronConsole.PrintLine("ZB RECEIVED: DATA=" + packet.Data);
-
             if (string.IsNullOrWhiteSpace(packet.Data) || packet.Data.Length < 4)
             {
                 return;
@@ -283,14 +285,14 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 return;
             }
 
-            var zone = _state.GetOrCreateZone(zoneNumber);
+            ElkZone zone = _state.GetOrCreateZone(zoneNumber);
             bool oldBypassed = zone.IsBypassed;
 
             zone.IsBypassed = bypassFlag != '0';
 
             if (oldBypassed != zone.IsBypassed)
             {
-                 CrestronConsole.PrintLine("ZONE BYPASS CHANGED: " + zone.Number.ToString("D3") + " -> " + zone.IsBypassed);
+                CrestronConsole.PrintLine("ZONE BYPASS CHANGED: " + zone.Number.ToString("D3") + " -> " + zone.IsBypassed);
                 _state.RaiseZoneBypassChanged(zone);
             }
 
@@ -332,6 +334,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
             {
                 ElkZone zone = _state.GetOrCreateZone(number);
                 string oldName = zone.Name;
+
                 ElkZoneNameMapper.ApplyName(zone, name);
 
                 if (!string.Equals(oldName, zone.Name, StringComparison.Ordinal))
@@ -355,6 +358,21 @@ namespace SecuritySystem_Elk_M1_IP_v1
             }
         }
 
+        private int Get208ArrayLength(string data)
+        {
+            if (string.IsNullOrEmpty(data))
+            {
+                return 0;
+            }
+
+            if (data.Length >= MaxZones + 2)
+            {
+                return MaxZones;
+            }
+
+            return data.Length > MaxZones ? MaxZones : data.Length;
+        }
+
         private void LogZoneChangeUpdate(ElkZone zone)
         {
             char lastRaw;
@@ -364,7 +382,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
             }
 
             _lastLoggedZoneRawStatus[zone.Number] = zone.RawStatus;
-             CrestronConsole.PrintLine("ZONE CHANGE UPDATE: " + zone);
+            CrestronConsole.PrintLine("ZONE CHANGE UPDATE: " + zone);
         }
     }
 }

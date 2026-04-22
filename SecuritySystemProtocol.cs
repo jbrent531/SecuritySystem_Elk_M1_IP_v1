@@ -390,7 +390,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
             }
         }
 
-        public SecuritySystemOperationalResult SetZoneBypass(int zoneIndex, bool bypass, string password)
+        private SecuritySystemOperationalResult SetZoneBypass(int zoneIndex, bool bypass, string password)
         {
             SecuritySystemZone zone = GetZone(zoneIndex);
             if (zone == null)
@@ -402,21 +402,21 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 };
             }
 
+            if (string.IsNullOrEmpty(password))
+            {
+                return new SecuritySystemOperationalResult(1)
+                {
+                    Result = SecuritySystemOperationalResultCode.InvalidPasscode,
+                    TargetComponentId = new List<int> { zoneIndex }
+                };
+            }
+
             try
             {
-                string methodName = bypass ? "BypassZoneAsync" : "UnbypassZoneAsync";
-                MethodInfo method = _elkService.GetType().GetMethod(methodName, BindingFlags.Public | BindingFlags.Instance);
+                Task task = bypass
+                    ? _elkService.BypassZoneAsync(zoneIndex, password)
+                    : _elkService.UnbypassZoneAsync(zoneIndex, password);
 
-                if (method == null)
-                {
-                    return new SecuritySystemOperationalResult(1)
-                    {
-                        Result = SecuritySystemOperationalResultCode.InvalidIdParameters,
-                        TargetComponentId = new List<int> { zoneIndex }
-                    };
-                }
-
-                Task task = method.Invoke(_elkService, new object[] { zoneIndex, password ?? string.Empty }) as Task;
                 if (task != null)
                 {
                     FireAndForget(task);
@@ -433,7 +433,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 LogMessage("SetZoneBypass failed: " + ex.Message);
                 return new SecuritySystemOperationalResult(1)
                 {
-                    Result = SecuritySystemOperationalResultCode.InvalidIdParameters,
+                    Result = SecuritySystemOperationalResultCode.UnexpectedError,
                     TargetComponentId = new List<int> { zoneIndex }
                 };
             }
@@ -795,8 +795,24 @@ namespace SecuritySystem_Elk_M1_IP_v1
                     ? "Zone " + elkZone.Number.ToString("D3")
                     : elkZone.Name;
 
-                bool isFaulted = elkZone.IsOpen || elkZone.IsViolated || elkZone.IsTrouble;
-                securityZone.ApplyElkState(zoneName, isFaulted, elkZone.IsBypassed, elkZone.Definition);
+                bool isFaulted = elkZone.IsFaulted;
+
+                LogMessage(
+                    string.Format(
+                        "Zone {0}: raw={1} text={2} open={3} violated={4} trouble={5} bypassed={6}",
+                        elkZone.Number,
+                        elkZone.RawStatus,
+                        elkZone.StatusText,
+                        elkZone.IsOpen,
+                        elkZone.IsViolated,
+                        elkZone.IsTrouble,
+                        elkZone.IsBypassed));
+
+                securityZone.ApplyElkState(
+                    zoneName,
+                    isFaulted,
+                    elkZone.IsBypassed,
+                    elkZone.Definition);
             }
         }
 

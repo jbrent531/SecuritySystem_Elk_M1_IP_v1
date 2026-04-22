@@ -2,7 +2,6 @@ using System;
 using System.Threading.Tasks;
 using Crestron.SimplSharp;
 
-
 namespace SecuritySystem_Elk_M1_IP_v1
 {
     public sealed class ElkM1Client
@@ -42,6 +41,34 @@ namespace SecuritySystem_Elk_M1_IP_v1
         public Task ArmStayAsync(int area, string code) => SendArmCommandAsync("a2", area, code);
         public Task ArmAwayAsync(int area, string code) => SendArmCommandAsync("a1", area, code);
         public Task DisarmAsync(int area, string code) => SendArmCommandAsync("a0", area, code);
+
+        public Task ToggleZoneBypassAsync(int zoneNumber, int area, string code)
+        {
+            if (zoneNumber < 1 || zoneNumber > 208)
+                throw new ArgumentOutOfRangeException(nameof(zoneNumber), "Zone must be between 1 and 208.");
+
+            if (area < 1 || area > 8)
+                area = 1;
+
+            if (string.IsNullOrWhiteSpace(code))
+                throw new ArgumentException("A user code is required.", nameof(code));
+
+            code = code.Trim();
+            if (code.Length > 6)
+                throw new ArgumentException("User code cannot be longer than 6 digits.", nameof(code));
+
+            foreach (char c in code)
+            {
+                if (!char.IsDigit(c))
+                    throw new ArgumentException("User code must contain digits only.", nameof(code));
+            }
+
+            string code6 = code.PadLeft(6, '0');
+            string data = $"{zoneNumber:D3}{area}{code6}00";
+
+            CrestronConsole.PrintLine("ELK BYPASS CMD: zb " + data);
+            return SendRawCommandAsync("zb", data);
+        }
 
         private Task SendArmCommandAsync(string command, int area, string code)
         {

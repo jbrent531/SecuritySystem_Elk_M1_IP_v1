@@ -29,5 +29,8 @@ namespace SecuritySystem_Elk_M1_IP_v1
         Task ArmStayAsync(int area, string userCode);
         Task ArmAwayAsync(int area, string userCode);
         Task DisarmAsync(int area, string userCode);
+
+        Task BypassZoneAsync(int zoneNumber, string userCode);
+        Task UnbypassZoneAsync(int zoneNumber, string userCode);
     }
 }

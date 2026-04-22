@@ -1,72 +1,129 @@
-using Crestron.SimplSharp;
-
-public static class ElkZoneStatusDecoder
+namespace SecuritySystem_Elk_M1_IP_v1
+{
+    public static class ElkZoneStatusDecoder
     {
         public static string Decode(char raw)
         {
-            switch (raw)
+            switch (char.ToUpperInvariant(raw))
             {
-                case '0': return "Unused/Unknown";
-                case '1': return "EOL";
-                case '2': return "Short";
-                case '3': return "Closed";
-                case '4': return "Open EOL";
-                case '5': return "Open Short";
-                case '6': return "Trouble";
-                case '7': return "Violated";
-                case '8': return "Bypassed";
-                case '9': return "Open";
-                case 'A': return "Alarm";
-                case 'B': return "Trouble";
-                case 'C': return "Bypassed Trouble";
-                case 'D': return "Bypassed";
-                case 'E': return "Bypassed Open";
-                case 'F': return "Bypassed Trouble";
+                case '0': return "Normal Unconfigured";
+                case '1': return "Normal Open";
+                case '2': return "Normal EOL";
+                case '3': return "Normal Short";
+                case '4': return "Not Used";
+                case '5': return "Trouble Open";
+                case '6': return "Trouble EOL";
+                case '7': return "Trouble Short";
+                case '8': return "Not Used";
+                case '9': return "Violated Open";
+                case 'A': return "Violated EOL";
+                case 'B': return "Violated Short";
+                case 'C': return "Soft Bypassed";
+                case 'D': return "Bypassed Open";
+                case 'E': return "Bypassed EOL";
+                case 'F': return "Bypassed Short";
                 default: return "Unknown (" + raw + ")";
             }
         }
 
-    public static bool IsFaultLikeTrouble(char raw)
-    {
-        return raw == '6'
-            || raw == 'B'
-            || raw == 'C'
-            || raw == 'F';
-    }
-
-    public static bool IsOpen(char raw)
-    {
-        return raw == '9'
-            || raw == '4'
-            || raw == '5'
-            || raw == 'E';
-    }
-
-    public static bool IsClosed(char raw)
+        public static bool IsNormal(char raw)
         {
-            return raw == '3' || raw == 'D';
-        }
-
-        public static bool IsBypassed(char raw)
-        {
-            return raw == '8'
-                || raw == 'C'
-                || raw == 'D'
-                || raw == 'E'
-                || raw == 'F';
+            raw = char.ToUpperInvariant(raw);
+            return raw == '1' || raw == '2' || raw == '3';
         }
 
         public static bool IsTrouble(char raw)
         {
-            return raw == '6'
-                || raw == 'B'
-                || raw == 'C'
-                || raw == 'F';
+            int nibble;
+            if (!TryGetNibble(raw, out nibble))
+            {
+                return false;
+            }
+
+            return nibble >= 5 && nibble <= 7;
         }
 
         public static bool IsViolated(char raw)
         {
-            return raw == '7'
-                || raw == 'A';
+            int nibble;
+            if (!TryGetNibble(raw, out nibble))
+            {
+                return false;
+            }
+
+            return nibble >= 9 && nibble <= 11;
         }
+
+        public static bool IsBypassed(char raw)
+        {
+            int nibble;
+            if (!TryGetNibble(raw, out nibble))
+            {
+                return false;
+            }
+
+            return nibble >= 12 && nibble <= 15;
+        }
+
+        public static bool IsOpen(char raw)
+        {
+            int nibble;
+            if (!TryGetNibble(raw, out nibble))
+            {
+                return false;
+            }
+
+            int physical = nibble & 0x3;
+            return physical == 1;
+        }
+
+        private static bool TryGetNibble(char raw, out int nibble)
+        {
+            raw = char.ToUpperInvariant(raw);
+
+            if (raw >= '0' && raw <= '9')
+            {
+                nibble = raw - '0';
+                return true;
+            }
+
+            if (raw >= 'A' && raw <= 'F')
+            {
+                nibble = 10 + (raw - 'A');
+                return true;
+            }
+
+            nibble = 0;
+            return false;
+        }
+
+        public static int GetPhysicalState(char raw)
+        {
+            raw = char.ToUpperInvariant(raw);
+
+            switch (raw)
+            {
+                case '1':
+                case '5':
+                case '9':
+                case 'D':
+                    return 1; // Open
+
+                case '2':
+                case '6':
+                case 'A':
+                case 'E':
+                    return 2; // EOL
+
+                case '3':
+                case '7':
+                case 'B':
+                case 'F':
+                    return 3; // Short
+
+                default:
+                    return 0;
+            }
+        }
+    }
 }

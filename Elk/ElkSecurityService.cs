@@ -146,6 +146,9 @@ namespace SecuritySystem_Elk_M1_IP_v1
             await _client.RequestZoneDefinitionsAsync();
             await Task.Delay(100);
 
+            await _client.RequestZonePartitionsAsync();
+            await Task.Delay(100);
+
             await RefreshZoneNamesAsync();
             await RefreshAreaNamesAsync();
         }
@@ -167,9 +170,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 try
                 {
                     await _client.RequestArmingStatusAsync();
-                    await Task.Delay(500, token);
-
-                    await _client.RequestZoneStatusAsync();
                     await Task.Delay(TimeSpan.FromSeconds(30), token);
                 }
                 catch (OperationCanceledException)
@@ -188,6 +188,39 @@ namespace SecuritySystem_Elk_M1_IP_v1
                     }
                 }
             }
+        }
+
+        public Task BypassZoneAsync(int zoneNumber, string userCode)
+        {
+            ElkZone zone;
+            if (_state.Zones.TryGetValue(zoneNumber, out zone) && zone.IsBypassed)
+            {
+                return Task.CompletedTask;
+            }
+
+            return _client.ToggleZoneBypassAsync(zoneNumber, GetZoneArea(zoneNumber), userCode);
+        }
+
+        public Task UnbypassZoneAsync(int zoneNumber, string userCode)
+        {
+            ElkZone zone;
+            if (_state.Zones.TryGetValue(zoneNumber, out zone) && !zone.IsBypassed)
+            {
+                return Task.CompletedTask;
+            }
+
+            return _client.ToggleZoneBypassAsync(zoneNumber, GetZoneArea(zoneNumber), userCode);
+        }
+
+        private int GetZoneArea(int zoneNumber)
+        {
+            ElkZone zone;
+            if (_state.Zones.TryGetValue(zoneNumber, out zone) && zone.Partition >= 1 && zone.Partition <= 8)
+            {
+                return zone.Partition;
+            }
+
+            return 1;
         }
 
         private void OnTransportDataReceived(byte[] data)

@@ -6,26 +6,55 @@ namespace SecuritySystem_Elk_M1_IP_v1
     {
         public static void ApplyStatus(ElkZone zone, char rawStatus)
         {
-            if (zone == null)
+            zone.RawStatus = char.ToUpperInvariant(rawStatus);
+            zone.StatusText = ElkZoneStatusDecoder.Decode(zone.RawStatus);
+
+            zone.IsOpen = ElkZoneStatusDecoder.IsOpen(zone.RawStatus);
+            zone.IsTrouble = ElkZoneStatusDecoder.IsTrouble(zone.RawStatus);
+            zone.IsViolated = ElkZoneStatusDecoder.IsViolated(zone.RawStatus);
+            zone.IsBypassed = ElkZoneStatusDecoder.IsBypassed(zone.RawStatus);
+
+            if (ElkZoneStatusDecoder.IsNormal(zone.RawStatus))
             {
-                return;
+                zone.NormalPhysicalState = ElkZoneStatusDecoder.GetPhysicalState(zone.RawStatus);
             }
 
-            zone.RawStatus = rawStatus;
-            zone.StatusText = ElkZoneStatusDecoder.Decode(rawStatus);
-            zone.IsOpen = ElkZoneStatusDecoder.IsOpen(rawStatus);
-            zone.IsViolated = ElkZoneStatusDecoder.IsViolated(rawStatus);
-            zone.IsBypassed = ElkZoneStatusDecoder.IsBypassed(rawStatus);
-            zone.IsTrouble = ElkZoneStatusDecoder.IsTrouble(rawStatus);
+            zone.IsFaulted = ComputeFaulted(zone);
 
-            /*CrestronConsole.PrintLine(
-                "ZONE MAPPER zone=" + zone.Number +
-                " raw=" + rawStatus +
-                " text=" + zone.StatusText +
-                " open=" + zone.IsOpen +
-                " violated=" + zone.IsViolated +
-                " bypassed=" + zone.IsBypassed);
-            */
+            CrestronConsole.PrintLine(
+                "ZONE MAP #{0}: raw='{1}' text='{2}' faulted={3} bypassed={4} normalPhysical={5}",
+                zone.Number,
+                zone.RawStatus,
+                zone.StatusText,
+                zone.IsFaulted,
+                zone.IsBypassed,
+                zone.NormalPhysicalState);
+        }
+
+        private static bool ComputeFaulted(ElkZone zone)
+        {
+            if (zone.IsTrouble || zone.IsViolated)
+            {
+                return true;
+            }
+
+            if (!zone.IsBypassed)
+            {
+                return false;
+            }
+
+            if (zone.RawStatus == 'C')
+            {
+                return zone.IsFaulted;
+            }
+
+            int currentPhysical = ElkZoneStatusDecoder.GetPhysicalState(zone.RawStatus);
+            if (currentPhysical == 0 || zone.NormalPhysicalState == 0)
+            {
+                return zone.IsFaulted;
+            }
+
+            return currentPhysical != zone.NormalPhysicalState;
         }
     }
 }

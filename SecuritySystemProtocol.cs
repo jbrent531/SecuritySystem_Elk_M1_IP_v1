@@ -1040,8 +1040,11 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 return existing;
             }
 
+            SecuritySystemZone zone = new SecuritySystemZone(
+                "Zone " + zoneNumber.ToString("D3"),
+                zoneNumber,
+                areaIndex);
 
-            SecuritySystemZone zone = new SecuritySystemZone("Zone " + zoneNumber.ToString("D3"), zoneNumber, _selectedArea);
             zone.SecuritySystemZoneStateChanged += OnSecuritySystemZoneStateChanged;
 
             zone.BypassDelegate = delegate (int zoneIdx, int areaIdx, string password)

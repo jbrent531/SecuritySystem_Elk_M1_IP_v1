@@ -145,7 +145,19 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
         public void ApplyElkState(string zoneName, bool isFaulted, bool isBypassed, char definition)
         {
+            CrestronConsole.PrintLine(
+                "ApplyElkState BEFORE name='" + zoneName +
+                "' definition='" + definition +
+                "' type=" + Type);
+
             Name = zoneName;
+
+            ApplyElkDefinition(zoneName, definition);
+
+            CrestronConsole.PrintLine(
+                "ApplyElkState AFTER name='" + zoneName +
+                "' definition='" + definition +
+                "' type=" + Type);
 
             bool isOk = !isFaulted;
 

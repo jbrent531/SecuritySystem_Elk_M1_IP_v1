@@ -9,6 +9,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
         public Dictionary<int, ElkArea> Areas { get; private set; }
         public Dictionary<int, int> KeypadAreas { get; private set; }
         public Dictionary<int, ElkKeypad> Keypads { get; private set; }
+        public ElkSystemTroubleState SystemTrouble { get; private set; }
 
         public bool IsSystemReady { get; private set; }
         public bool IsAlarmActive { get; private set; }
@@ -21,6 +22,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
         public event Action<bool> AlarmActiveChanged;
         public event Action<int, int> KeypadAreaChanged;
         public event Action<ElkKeypad> KeypadChanged;
+        public event Action<ElkSystemTroubleState> SystemTroubleChanged;
 
         public ElkSystemState()
         {
@@ -28,6 +30,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
             Areas = new Dictionary<int, ElkArea>();
             KeypadAreas = new Dictionary<int, int>();
             Keypads = new Dictionary<int, ElkKeypad>();
+            SystemTrouble = new ElkSystemTroubleState();
         }
 
         public ElkZone GetOrCreateZone(int zoneNumber)
@@ -49,7 +52,9 @@ namespace SecuritySystem_Elk_M1_IP_v1
                     NormalPhysicalState = 0,
                     Partition = 0,
                     Definition = '\0',
-                    IsConfigured = false
+                    IsConfigured = false,
+                    DefinitionText = string.Empty,
+                    ZoneTypeText = string.Empty
                 };
 
                 Zones[zoneNumber] = zone;
@@ -162,6 +167,17 @@ namespace SecuritySystem_Elk_M1_IP_v1
             if (handler != null)
             {
                 handler(keypad);
+            }
+        }
+
+        public void SetSystemTrouble(ElkSystemTroubleState state)
+        {
+            SystemTrouble = state ?? new ElkSystemTroubleState();
+
+            var handler = SystemTroubleChanged;
+            if (handler != null)
+            {
+                handler(SystemTrouble);
             }
         }
 

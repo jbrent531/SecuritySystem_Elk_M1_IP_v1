@@ -217,8 +217,11 @@
     <Compile Include="Elk\ElkPacketParser.cs" />
     <Compile Include="Elk\ElkSecurityService.cs" />
     <Compile Include="Elk\ElkSystemState.cs" />
+    <Compile Include="Elk\ElkSystemTroubleDecoder.cs" />
+    <Compile Include="Elk\ElkSystemTroubleState.cs" />
     <Compile Include="Elk\ElkZone.cs" />
     <Compile Include="Elk\ElkZoneDefinition.cs" />
+    <Compile Include="Elk\ElkZoneDefinitionDecoder.cs" />
     <Compile Include="Elk\ElkZoneMapper.cs" />
     <Compile Include="Elk\ElkZoneNameMapper.cs" />
     <Compile Include="Elk\ElkZoneStatusDecoder.cs" />

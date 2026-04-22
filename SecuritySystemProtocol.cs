@@ -398,8 +398,12 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
         private Task ToggleChimeAsync()
         {
-            const int chimeTaskNumber = 1;
-            return _elkService.ActivateTaskAsync(chimeTaskNumber);
+            if (_elkService == null)
+            {
+                throw new InvalidOperationException("ELK service is not initialized.");
+            }
+
+            return _elkService.ToggleChimeAsync(_keypadNumber);
         }
 
         private SecuritySystemOperationalResult SetZoneBypass(int zoneIndex, bool bypass, string password)
@@ -494,6 +498,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
                     _elkService.AreaChanged -= OnElkAreaChanged;
                     _elkService.SystemReadyChanged -= OnElkSystemReadyChanged;
                     _elkService.AlarmActiveChanged -= OnElkAlarmActiveChanged;
+                    _elkService.SystemTroubleChanged -= OnElkSystemTroubleChanged;
 
                     try
                     {
@@ -554,6 +559,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
             _elkService.AreaChanged += OnElkAreaChanged;
             _elkService.SystemReadyChanged += OnElkSystemReadyChanged;
             _elkService.AlarmActiveChanged += OnElkAlarmActiveChanged;
+            _elkService.SystemTroubleChanged += OnElkSystemTroubleChanged;
         }
 
         private void StartElkService()
@@ -689,6 +695,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
             FireAndForget(_elkService.RefreshFunctionKeyStatusAsync(_keypadNumber));
             FireAndForget(_elkService.RequestChimeModeAsync(_keypadNumber));
+            FireAndForget(_elkService.RefreshSystemTroubleAsync());
         }
 
         private void RebuildDiscoveredAreaNumbers()
@@ -1128,11 +1135,20 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 return existing;
             }
 
-            SecuritySystemZone zone = new SecuritySystemZone(
-                "Zone " + zoneNumber.ToString("D3"),
-                zoneNumber,
-                areaIndex);
+            string zoneName = "Zone " + zoneNumber.ToString("D3");
 
+            if (_elkService != null)
+            {
+                ElkZone elkZone;
+                if (_elkService.Zones.TryGetValue(zoneNumber, out elkZone) &&
+                    elkZone != null &&
+                    !string.IsNullOrWhiteSpace(elkZone.Name))
+                {
+                    zoneName = elkZone.Name;
+                }
+            }
+
+            SecuritySystemZone zone = new SecuritySystemZone(zoneName, zoneNumber, areaIndex);
             zone.SecuritySystemZoneStateChanged += OnSecuritySystemZoneStateChanged;
 
             zone.BypassDelegate = delegate (int zoneIdx, int areaIdx, string password)
@@ -1226,6 +1242,21 @@ namespace SecuritySystem_Elk_M1_IP_v1
         {
             SecuritySystemZone zone;
             return _zoneLookup.TryGetValue(zoneIndex, out zone) ? zone : null;
+        }
+
+        private void OnElkSystemTroubleChanged(ElkSystemTroubleState trouble)
+        {
+            if (trouble == null)
+            {
+                return;
+            }
+
+            LogMessage("SystemTroubleChanged: " + trouble.Summary);
+
+            if (!string.IsNullOrWhiteSpace(trouble.KeypadLine1) || !string.IsNullOrWhiteSpace(trouble.KeypadLine2))
+            {
+                LogMessage("SystemTroubleKeypad: '" + trouble.KeypadLine1 + "' / '" + trouble.KeypadLine2 + "'");
+            }
         }
 
         private int GetPrimaryArea(List<int> areaIndexes)

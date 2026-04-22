@@ -30,8 +30,10 @@ namespace SecuritySystem_Elk_M1_IP_v1
             _readLoopCts = new CancellationTokenSource();
 
             RaiseLog("Connected.");
-            Task.Run(() => ReadLoopAsync(_readLoopCts.Token));
+            _readLoopTask = Task.Run(() => ReadLoopAsync(_readLoopCts.Token));
         }
+
+        private Task _readLoopTask;
 
         public Task ConnectAsync(string host, int port)
         {
@@ -45,6 +47,25 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 if (_readLoopCts != null)
                 {
                     _readLoopCts.Cancel();
+                }
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                if (_readLoopTask != null)
+                {
+                    try
+                    {
+                        await _readLoopTask;
+                    }
+                    catch
+                    {
+                    }
+
+                    _readLoopTask = null;
                 }
             }
             catch
@@ -76,8 +97,19 @@ namespace SecuritySystem_Elk_M1_IP_v1
             {
             }
 
+            try
+            {
+                if (_readLoopCts != null)
+                {
+                    _readLoopCts.Dispose();
+                    _readLoopCts = null;
+                }
+            }
+            catch
+            {
+            }
+
             RaiseLog("Disconnected.");
-            await Task.CompletedTask;
         }
 
         public async Task SendAsciiAsync(string text, CancellationToken ct)

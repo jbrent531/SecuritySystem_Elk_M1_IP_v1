@@ -50,7 +50,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
             {
                 State = new SecuritySystemKeypadIndicatorState(),
                 Label = "Chime",
-                Color = SecuritySystemKeypadLedColors.Blue
+                Color = SecuritySystemKeypadLedColors.White
             };
 
             FunctionButtons = new SecuritySystemKeypadFunctionButton[7];

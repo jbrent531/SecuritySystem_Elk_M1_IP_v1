@@ -83,6 +83,10 @@ namespace SecuritySystem_Elk_M1_IP_v1
                     HandleKf(packet);
                     break;
 
+                case "SS":
+                    HandleSs(packet);
+                    break;
+
                 case "IC":
                 case "LD":
                 case "EE":
@@ -198,7 +202,15 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
                 ElkZone zone = _state.GetOrCreateZone(zoneNumber);
                 zone.Definition = rawDef;
+                zone.DefinitionText = ElkZoneDefinitionDecoder.Decode(rawDef);
+                zone.ZoneTypeText = ElkZoneDefinitionDecoder.DecodeCategory(rawDef);
                 zone.IsConfigured = rawDef != '0';
+
+                CrestronConsole.PrintLine(
+                    "ZONE DEF #" + zoneNumber +
+                    ": raw=" + rawDef +
+                    " text=" + zone.DefinitionText +
+                    " category=" + zone.ZoneTypeText);
             }
 
             CrestronConsole.PrintLine("ZONE DEFINITIONS UPDATED.");
@@ -489,6 +501,30 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 " area1Chime=" + _state.GetOrCreateArea(1).ChimeModeText +
                 " area2Chime=" + _state.GetOrCreateArea(2).ChimeModeText);
         }
+
+        private void HandleSs(ElkPacket packet)
+        {
+            if (string.IsNullOrEmpty(packet.Data))
+            {
+                return;
+            }
+
+            ElkSystemTroubleState trouble = ElkSystemTroubleDecoder.Decode(packet.Data);
+            _state.SetSystemTrouble(trouble);
+
+            CrestronConsole.PrintLine("SS summary: " + trouble.Summary);
+
+            if (!string.IsNullOrWhiteSpace(trouble.KeypadLine1))
+            {
+                CrestronConsole.PrintLine("SS keypad line1: " + trouble.KeypadLine1);
+            }
+
+            if (!string.IsNullOrWhiteSpace(trouble.KeypadLine2))
+            {
+                CrestronConsole.PrintLine("SS keypad line2: " + trouble.KeypadLine2);
+            }
+        }
+
 
         private int Get208ArrayLength(string data)
         {

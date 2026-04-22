@@ -17,6 +17,9 @@ namespace SecuritySystem_Elk_M1_IP_v1
         public char Definition { get; set; }
         public bool IsConfigured { get; set; }
 
+        public string DefinitionText { get; set; }
+        public string ZoneTypeText { get; set; }
+
         public override string ToString()
         {
             return string.Format(

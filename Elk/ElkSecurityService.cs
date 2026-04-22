@@ -23,31 +23,13 @@ namespace SecuritySystem_Elk_M1_IP_v1
         public event Action<ElkArea> AreaChanged;
         public event Action<bool> SystemReadyChanged;
         public event Action<bool> AlarmActiveChanged;
-        public event Action<ElkKeypad> KeypadChanged
-        {
-            add { _state.KeypadChanged += value; }
-            remove { _state.KeypadChanged -= value; }
-        }
+        public event Action<ElkSystemTroubleState> SystemTroubleChanged;
 
-        public IReadOnlyDictionary<int, ElkZone> Zones
-        {
-            get { return _state.Zones; }
-        }
+        public IReadOnlyDictionary<int, ElkZone> Zones { get { return _state.Zones; } }
+        public IReadOnlyDictionary<int, ElkArea> Areas { get { return _state.Areas; } }
 
-        public IReadOnlyDictionary<int, ElkArea> Areas
-        {
-            get { return _state.Areas; }
-        }
-
-        public bool IsSystemReady
-        {
-            get { return _state.IsSystemReady; }
-        }
-
-        public bool IsAlarmActive
-        {
-            get { return _state.IsAlarmActive; }
-        }
+        public bool IsSystemReady { get { return _state.IsSystemReady; } }
+        public bool IsAlarmActive { get { return _state.IsAlarmActive; } }
 
         public ElkSecurityService()
         {
@@ -65,6 +47,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
             _state.AreaChanged += OnStateAreaChanged;
             _state.SystemReadyChanged += OnStateSystemReadyChanged;
             _state.AlarmActiveChanged += OnStateAlarmActiveChanged;
+            _state.SystemTroubleChanged += OnStateSystemTroubleChanged;
         }
 
         public async Task StartAsync(string host, int port)
@@ -104,20 +87,16 @@ namespace SecuritySystem_Elk_M1_IP_v1
             await _transport.DisconnectAsync();
         }
 
-        public Task RefreshZonesAsync()
-        {
-            return _client.RequestZoneStatusAsync();
-        }
-
-        public Task RefreshAreasAsync()
-        {
-            return _client.RequestArmingStatusAsync();
-        }
+        public Task RefreshZonesAsync() { return _client.RequestZoneStatusAsync(); }
+        public Task RefreshAreasAsync() { return _client.RequestArmingStatusAsync(); }
+        public Task RefreshKeypadAreasAsync() { return _client.RequestKeypadAreaAssignmentsAsync(); }
+        public Task RefreshFunctionKeyStatusAsync(int keypadNumber) { return _client.RequestFunctionKeyStatusAsync(keypadNumber); }
+        public Task RequestChimeModeAsync(int keypadNumber) { return _client.RequestChimeModeAsync(keypadNumber); }
+        public Task RefreshSystemTroubleAsync() { return _client.RequestSystemTroubleStatusAsync(); }
 
         public async Task RefreshZoneNamesAsync()
         {
             int zone;
-
             for (zone = 1; zone <= 208; zone++)
             {
                 await _client.RequestTextDescriptionAsync(0, zone);
@@ -125,43 +104,86 @@ namespace SecuritySystem_Elk_M1_IP_v1
             }
         }
 
-        public Task ArmStayAsync(int area, string userCode)
+        public Task ArmStayAsync(int area, string userCode) { return _client.ArmStayAsync(area, userCode); }
+        public Task ArmAwayAsync(int area, string userCode) { return _client.ArmAwayAsync(area, userCode); }
+        public Task DisarmAsync(int area, string userCode) { return _client.DisarmAsync(area, userCode); }
+
+        public Task BypassZoneAsync(int zoneNumber, string userCode)
         {
-            return _client.ArmStayAsync(area, userCode);
+            ElkZone zone;
+            if (_state.Zones.TryGetValue(zoneNumber, out zone) && zone.IsBypassed)
+            {
+                return Task.CompletedTask;
+            }
+
+            return _client.ToggleZoneBypassAsync(zoneNumber, GetZoneArea(zoneNumber), userCode);
         }
 
-        public Task ArmAwayAsync(int area, string userCode)
+        public Task UnbypassZoneAsync(int zoneNumber, string userCode)
         {
-            return _client.ArmAwayAsync(area, userCode);
+            ElkZone zone;
+            if (_state.Zones.TryGetValue(zoneNumber, out zone) && !zone.IsBypassed)
+            {
+                return Task.CompletedTask;
+            }
+
+            return _client.ToggleZoneBypassAsync(zoneNumber, GetZoneArea(zoneNumber), userCode);
         }
 
-        public Task DisarmAsync(int area, string userCode)
+        public Task PressFunctionKeyAsync(int keypadNumber, int functionKeyNumber)
         {
-            return _client.DisarmAsync(area, userCode);
+            return _client.PressFunctionKeyAsync(keypadNumber, functionKeyNumber);
+        }
+
+        public Task ToggleChimeAsync(int keypadNumber)
+        {
+            return _client.ToggleChimeAsync(keypadNumber);
+        }
+
+        public int GetKeypadArea(int keypadNumber)
+        {
+            int area;
+            if (_state.KeypadAreas.TryGetValue(keypadNumber, out area) && area >= 1 && area <= 8)
+            {
+                return area;
+            }
+
+            return 1;
+        }
+
+        private int GetZoneArea(int zoneNumber)
+        {
+            ElkZone zone;
+            if (_state.Zones.TryGetValue(zoneNumber, out zone) && zone.Partition >= 1 && zone.Partition <= 8)
+            {
+                return zone.Partition;
+            }
+
+            return 1;
         }
 
         private async Task InitialSyncAsync()
         {
             await _client.RequestArmingStatusAsync();
-            await Task.Delay(250);
+            await Task.Delay(100);
 
             await _client.RequestZoneStatusAsync();
-            await Task.Delay(250);
+            await Task.Delay(100);
 
             await _client.RequestZoneDefinitionsAsync();
-            await Task.Delay(250);
+            await Task.Delay(100);
 
             await _client.RequestZonePartitionsAsync();
-            await Task.Delay(250);
-
-            await RefreshZoneNamesAsync();
-            await Task.Delay(250);
-
-            await RefreshAreaNamesAsync();
-            await Task.Delay(250);
+            await Task.Delay(100);
 
             await _client.RequestKeypadAreaAssignmentsAsync();
-            await Task.Delay(250);
+            await Task.Delay(100);
+
+            await _client.RequestSystemTroubleStatusAsync();
+            await Task.Delay(100);
+
+            await RefreshZoneNamesAsync();
+            await RefreshAreaNamesAsync();
         }
 
         public async Task RefreshAreaNamesAsync()
@@ -172,16 +194,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 await _client.RequestTextDescriptionAsync(1, area);
                 await Task.Delay(20);
             }
-        }
-
-        public Task ToggleChimeAsync(int keypadNumber)
-        {
-            return _client.ToggleChimeAsync(keypadNumber);
-        }
-
-        public Task ActivateTaskAsync(int taskNumber)
-        {
-            return _client.ActivateTaskAsync(taskNumber);
         }
 
         private async Task PollLoopAsync(CancellationToken token)
@@ -209,39 +221,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
                     }
                 }
             }
-        }
-
-        public Task BypassZoneAsync(int zoneNumber, string userCode)
-        {
-            ElkZone zone;
-            if (_state.Zones.TryGetValue(zoneNumber, out zone) && zone.IsBypassed)
-            {
-                return Task.CompletedTask;
-            }
-
-            return _client.ToggleZoneBypassAsync(zoneNumber, GetZoneArea(zoneNumber), userCode);
-        }
-
-        public Task UnbypassZoneAsync(int zoneNumber, string userCode)
-        {
-            ElkZone zone;
-            if (_state.Zones.TryGetValue(zoneNumber, out zone) && !zone.IsBypassed)
-            {
-                return Task.CompletedTask;
-            }
-
-            return _client.ToggleZoneBypassAsync(zoneNumber, GetZoneArea(zoneNumber), userCode);
-        }
-
-        private int GetZoneArea(int zoneNumber)
-        {
-            ElkZone zone;
-            if (_state.Zones.TryGetValue(zoneNumber, out zone) && zone.Partition >= 1 && zone.Partition <= 8)
-            {
-                return zone.Partition;
-            }
-
-            return 1;
         }
 
         private void OnTransportDataReceived(byte[] data)
@@ -321,46 +300,13 @@ namespace SecuritySystem_Elk_M1_IP_v1
             }
         }
 
-        public Task PressFunctionKeyAsync(int keypadNumber, int functionKeyNumber)
+        private void OnStateSystemTroubleChanged(ElkSystemTroubleState state)
         {
-            return _client.PressFunctionKeyAsync(keypadNumber, functionKeyNumber);
-        }
-
-        public Task RefreshFunctionKeyStatusAsync(int keypadNumber)
-        {
-            return _client.RequestFunctionKeyStatusAsync(keypadNumber);
-        }
-
-        public Task RefreshKeypadAreasAsync()
-        {
-            return _client.RequestKeypadAreaAssignmentsAsync();
-        }
-
-        public int GetKeypadArea(int keypadNumber)
-        {
-            int area;
-            if (_state.KeypadAreas.TryGetValue(keypadNumber, out area) && area >= 1 && area <= 8)
+            var handler = SystemTroubleChanged;
+            if (handler != null)
             {
-                return area;
+                handler(state);
             }
-
-            return 1;
-        }
-
-        public ElkKeypad GetKeypad(int keypadNumber)
-        {
-            ElkKeypad keypad;
-            if (_state.Keypads.TryGetValue(keypadNumber, out keypad))
-            {
-                return keypad;
-            }
-
-            return null;
-        }
-
-        public Task RequestChimeModeAsync(int keypadNumber)
-        {
-            return _client.RequestChimeModeAsync(keypadNumber);
         }
     }
 }

@@ -12,22 +12,13 @@ namespace SecuritySystem_Elk_M1_IP_v1
         event Action<ElkArea> AreaChanged;
         event Action<bool> SystemReadyChanged;
         event Action<bool> AlarmActiveChanged;
-        event Action<ElkKeypad> KeypadChanged;
+        event Action<ElkSystemTroubleState> SystemTroubleChanged;
 
         IReadOnlyDictionary<int, ElkZone> Zones { get; }
         IReadOnlyDictionary<int, ElkArea> Areas { get; }
 
         bool IsSystemReady { get; }
         bool IsAlarmActive { get; }
-        int GetKeypadArea(int keypadNumber);
-
-
-        Task RefreshKeypadAreasAsync();
-        Task RequestChimeModeAsync(int keypadNumber);
-
-        Task ActivateTaskAsync(int taskNumber);
-
-        Task ToggleChimeAsync(int keypadNumber);
 
         Task StartAsync(string host, int port);
         Task StopAsync();
@@ -35,8 +26,10 @@ namespace SecuritySystem_Elk_M1_IP_v1
         Task RefreshZonesAsync();
         Task RefreshAreasAsync();
         Task RefreshZoneNamesAsync();
-        Task PressFunctionKeyAsync(int keypadNumber, int functionKeyNumber);
+        Task RefreshKeypadAreasAsync();
         Task RefreshFunctionKeyStatusAsync(int keypadNumber);
+        Task RequestChimeModeAsync(int keypadNumber);
+        Task RefreshSystemTroubleAsync();
 
         Task ArmStayAsync(int area, string userCode);
         Task ArmAwayAsync(int area, string userCode);
@@ -44,5 +37,11 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
         Task BypassZoneAsync(int zoneNumber, string userCode);
         Task UnbypassZoneAsync(int zoneNumber, string userCode);
+
+        Task PressFunctionKeyAsync(int keypadNumber, int functionKeyNumber);
+        Task ToggleChimeAsync(int keypadNumber);
+
+        int GetKeypadArea(int keypadNumber);
     }
 }
+

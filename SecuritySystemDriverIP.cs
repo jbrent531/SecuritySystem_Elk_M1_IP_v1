@@ -107,6 +107,10 @@ namespace SecuritySystem_Elk_M1_IP_v1
         public event EventHandler<ListChangedEventArgs<SecuritySystemState>> SecuritysystemStateChangedEvent;
         public event EventHandler<ListChangedEventArgs<ISecuritySystemZone>> SecuritySystemZoneListChanged;
 
+
+
+
+
         public void BypassZone(int areaIndex, int zoneIndex, string password)
         {
         }
@@ -253,13 +257,13 @@ namespace SecuritySystem_Elk_M1_IP_v1
             _securitySystemProtocol.SystemCommandResult += OnProtocolCommandResultChanged;
         }
 
-        private void InitializeKeypad()
-        {
-            KeypadInstance = new SecuritySystemKeypad();
-            KeypadInstance.Initialize(_securitySystemProtocol);
+private void InitializeKeypad()
+{
+    KeypadInstance = new SecuritySystemKeypad();
+    KeypadInstance.Initialize(_securitySystemProtocol);
 
-            _securitySystemKeypad = KeypadInstance;
-        }
+    _securitySystemKeypad = KeypadInstance;
+}
 
         private void RaiseSystemStateEvent(SecuritySystemState eventType, bool updatedState)
         {

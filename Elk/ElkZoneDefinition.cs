@@ -43,41 +43,4 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
         WaterAlarm = 24
     }
-
-    /// <summary>
-    /// Helper to convert Elk raw definition char → enum.
-    /// Keeps all protocol parsing in one place.
-    /// </summary>
-    public static class ElkZoneDefinitionDecoder
-    {
-        public static ElkZoneDefinition Decode(char definition)
-        {
-            int value = definition - '0';
-
-            if (value < 0 || value > 24)
-            {
-                return ElkZoneDefinition.Unknown;
-            }
-
-            return (ElkZoneDefinition)value;
-        }
-
-        /// <summary>
-        /// Friendly label for UI/logging/debugging
-        /// </summary>
-        public static string GetName(ElkZoneDefinition definition)
-        {
-            switch (definition)
-            {
-                case ElkZoneDefinition.BurglarEntryExit1: return "Entry/Exit 1";
-                case ElkZoneDefinition.BurglarEntryExit2: return "Entry/Exit 2";
-                case ElkZoneDefinition.BurglarPerimeterInstant: return "Perimeter";
-                case ElkZoneDefinition.BurglarInterior: return "Interior (Motion)";
-                case ElkZoneDefinition.FireAlarm: return "Fire";
-                case ElkZoneDefinition.CarbonMonoxide: return "CO";
-                case ElkZoneDefinition.WaterAlarm: return "Water";
-                default: return definition.ToString();
-            }
-        }
-    }
 }

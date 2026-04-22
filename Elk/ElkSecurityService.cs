@@ -23,6 +23,11 @@ namespace SecuritySystem_Elk_M1_IP_v1
         public event Action<ElkArea> AreaChanged;
         public event Action<bool> SystemReadyChanged;
         public event Action<bool> AlarmActiveChanged;
+        public event Action<ElkKeypad> KeypadChanged
+        {
+            add { _state.KeypadChanged += value; }
+            remove { _state.KeypadChanged -= value; }
+        }
 
         public IReadOnlyDictionary<int, ElkZone> Zones
         {
@@ -340,6 +345,22 @@ namespace SecuritySystem_Elk_M1_IP_v1
             }
 
             return 1;
+        }
+
+        public ElkKeypad GetKeypad(int keypadNumber)
+        {
+            ElkKeypad keypad;
+            if (_state.Keypads.TryGetValue(keypadNumber, out keypad))
+            {
+                return keypad;
+            }
+
+            return null;
+        }
+
+        public Task RequestChimeModeAsync(int keypadNumber)
+        {
+            return _client.RequestChimeModeAsync(keypadNumber);
         }
     }
 }

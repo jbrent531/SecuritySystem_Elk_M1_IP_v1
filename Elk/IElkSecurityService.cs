@@ -12,6 +12,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
         event Action<ElkArea> AreaChanged;
         event Action<bool> SystemReadyChanged;
         event Action<bool> AlarmActiveChanged;
+        event Action<ElkKeypad> KeypadChanged;
 
         IReadOnlyDictionary<int, ElkZone> Zones { get; }
         IReadOnlyDictionary<int, ElkArea> Areas { get; }
@@ -22,6 +23,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
 
         Task RefreshKeypadAreasAsync();
+        Task RequestChimeModeAsync(int keypadNumber);
 
         Task ActivateTaskAsync(int taskNumber);
 

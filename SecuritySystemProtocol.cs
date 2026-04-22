@@ -593,6 +593,8 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 SetConnected(true);
                 LogMessage("Connected set true");
 
+                RefreshKeypadDerivedStatus();
+
                 FireAndForget(PublishConfiguredZonesAfterReadyAsync());
 
                 FireAndForget(_elkService.RefreshFunctionKeyStatusAsync(_keypadNumber));
@@ -603,6 +605,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 HandleDisconnected();
             }
         }
+
 
         private async Task PublishConfiguredZonesAfterReadyAsync()
         {
@@ -672,7 +675,20 @@ namespace SecuritySystem_Elk_M1_IP_v1
             OnElkSystemReadyChanged(_elkService.IsSystemReady);
             OnElkAlarmActiveChanged(_elkService.IsAlarmActive);
 
+            UpdateKeypadChimeLed();
+
             LogMessage("Area/state published after zones");
+        }
+
+        private void RefreshKeypadDerivedStatus()
+        {
+            if (_elkService == null)
+            {
+                return;
+            }
+
+            FireAndForget(_elkService.RefreshFunctionKeyStatusAsync(_keypadNumber));
+            FireAndForget(_elkService.RequestChimeModeAsync(_keypadNumber));
         }
 
         private void RebuildDiscoveredAreaNumbers()
@@ -880,8 +896,56 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 RaiseKeypadAlarmChangedEvent(SecuritySystemAlarmType.Burglary, burglaryActive);
             }
 
-            LogMessage("OnElkAreaChanged area=" + elkArea.Number + " keypadArea=" + keypadArea);
+            UpdateKeypadChimeLed();
+
+            LogMessage(
+                "OnElkAreaChanged area=" + elkArea.Number +
+                " keypadArea=" + keypadArea +
+                " chime=" + elkArea.ChimeModeText +
+                " chimeEnabled=" + elkArea.IsChimeEnabled);
         }
+
+        private bool IsCurrentKeypadAreaChimeEnabled()
+        {
+            if (_elkService == null)
+            {
+                return false;
+            }
+
+            int keypadArea = _elkService.GetKeypadArea(_keypadNumber);
+
+            ElkArea area;
+            if (_elkService.Areas.TryGetValue(keypadArea, out area) && area != null)
+            {
+                return area.IsChimeEnabled;
+            }
+
+            return false;
+        }
+
+        private void UpdateKeypadChimeLed()
+        {
+            bool chimeEnabled = IsCurrentKeypadAreaChimeEnabled();
+
+            SecuritySystemKeypad keypad = _securitySystem.KeypadInstance;
+            if (keypad == null)
+            {
+                return;
+            }
+
+            if (chimeEnabled)
+            {
+                keypad.SetChimeLedOnState();
+            }
+            else
+            {
+                keypad.SetChimeLedOffState();
+            }
+
+            LogMessage("UpdateKeypadChimeLed chimeEnabled=" + chimeEnabled);
+        }
+
+
 
 
         private void PublishCurrentState()

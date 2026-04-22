@@ -208,6 +208,8 @@
     <Compile Include="Elk\ElkArea.cs" />
     <Compile Include="Elk\ElkAreaStateDecoder.cs" />
     <Compile Include="Elk\ElkCommandRouter.cs" />
+    <Compile Include="Elk\ElkKeypad.cs" />
+    <Compile Include="Elk\ElkKeypadDecoder.cs" />
     <Compile Include="Elk\ElkM1Client.cs" />
     <Compile Include="Elk\ElkMessageBuffer.cs" />
     <Compile Include="Elk\ElkPacket.cs" />

@@ -31,7 +31,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
         /// </summary>
         public SecuritySystemKeypad()
         {
-            Leds = new SecuritySystemKeypadLed[2];
+            Leds = new SecuritySystemKeypadLed[3];
             Leds[0] = new SecuritySystemKeypadLed(0)
             {
                 State = new SecuritySystemKeypadIndicatorState(),
@@ -44,6 +44,13 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 State = new SecuritySystemKeypadIndicatorState(),
                 Label = "Ready",
                 Color = SecuritySystemKeypadLedColors.Green
+            };
+
+            Leds[2] = new SecuritySystemKeypadLed(2)
+            {
+                State = new SecuritySystemKeypadIndicatorState(),
+                Label = "Chime",
+                Color = SecuritySystemKeypadLedColors.Blue
             };
 
             FunctionButtons = new SecuritySystemKeypadFunctionButton[7];
@@ -798,6 +805,38 @@ namespace SecuritySystem_Elk_M1_IP_v1
             indicatorState.Index = index;
             indicatorState.State = type;
             led.State = indicatorState;
+            ToggleLedState(led);
+        }
+
+        public void SetChimeLedOffState()
+        {
+            SecuritySystemKeypadIndicatorState indicatorState = new SecuritySystemKeypadIndicatorState();
+            indicatorState.Index = 2;
+            indicatorState.State = SecuritySystemKeypadIndicatorStateType.Off;
+
+            SecuritySystemKeypadLed led = new SecuritySystemKeypadLed(2)
+            {
+                Label = Leds[2].Label,
+                Color = Leds[2].Color,
+                State = indicatorState
+            };
+
+            ToggleLedState(led);
+        }
+
+        public void SetChimeLedOnState()
+        {
+            SecuritySystemKeypadIndicatorState indicatorState = new SecuritySystemKeypadIndicatorState();
+            indicatorState.Index = 2;
+            indicatorState.State = SecuritySystemKeypadIndicatorStateType.On;
+
+            SecuritySystemKeypadLed led = new SecuritySystemKeypadLed(2)
+            {
+                Label = Leds[2].Label,
+                Color = Leds[2].Color,
+                State = indicatorState
+            };
+
             ToggleLedState(led);
         }
 

@@ -19,6 +19,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
         private SecuritySystemProtocol _securitySystemProtocol;
         private IEmulatedSecuritySystemKeypad _securitySystemKeypad;
         private TcpTransport _tcpTransport;
+        public SecuritySystemKeypad KeypadInstance { get; private set; }
 
         private readonly List<SecuritySystemError> _currentlyActiveErrors = new List<SecuritySystemError>();
         private readonly List<SecuritySystemAlarmType> _currentlyActiveAlarms = new List<SecuritySystemAlarmType>();
@@ -254,11 +255,10 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
         private void InitializeKeypad()
         {
-            var keypad = _securitySystemKeypad as SecuritySystemKeypad;
-            if (keypad != null)
-            {
-                keypad.Initialize(_securitySystemProtocol);
-            }
+            KeypadInstance = new SecuritySystemKeypad();
+            KeypadInstance.Initialize(_securitySystemProtocol);
+
+            _securitySystemKeypad = KeypadInstance;
         }
 
         private void RaiseSystemStateEvent(SecuritySystemState eventType, bool updatedState)

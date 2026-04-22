@@ -142,5 +142,15 @@ namespace SecuritySystem_Elk_M1_IP_v1
             CrestronConsole.PrintLine("ELK ARM CMD: command=" + command + " data=" + data);
             return SendRawCommandAsync(command, data);
         }
+
+        public Task RequestChimeModeAsync(int keypadNumber)
+        {
+            if (keypadNumber < 1 || keypadNumber > 16)
+                throw new ArgumentOutOfRangeException(nameof(keypadNumber), "Keypad must be between 1 and 16.");
+
+            string data = string.Format("{0:D2}000", keypadNumber);
+            CrestronConsole.PrintLine("ELK CHIME STATUS CMD: kf " + data);
+            return SendRawCommandAsync("kf", data);
+        }
     }
 }

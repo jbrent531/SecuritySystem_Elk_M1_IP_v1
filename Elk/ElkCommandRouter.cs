@@ -76,6 +76,13 @@ namespace SecuritySystem_Elk_M1_IP_v1
                     break;
 
                 case "KC":
+                    HandleKc(packet);
+                    break;
+
+                case "KF":
+                    HandleKf(packet);
+                    break;
+
                 case "IC":
                 case "LD":
                 case "EE":
@@ -88,13 +95,8 @@ namespace SecuritySystem_Elk_M1_IP_v1
             }
         }
 
-        private void HandleRp(ElkPacket packet)
-        {
-        }
-
-        private void HandleXk(ElkPacket packet)
-        {
-        }
+        private void HandleRp(ElkPacket packet) { }
+        private void HandleXk(ElkPacket packet) { }
 
         private void HandleAs(ElkPacket packet)
         {
@@ -269,9 +271,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
             _state.RecalculateDerivedState();
         }
 
-        private void HandleAm(ElkPacket packet)
-        {
-        }
+        private void HandleAm(ElkPacket packet) { }
 
         private void HandleZb(ElkPacket packet)
         {
@@ -362,33 +362,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
             }
         }
 
-        private int Get208ArrayLength(string data)
-        {
-            if (string.IsNullOrEmpty(data))
-            {
-                return 0;
-            }
-
-            if (data.Length >= MaxZones + 2)
-            {
-                return MaxZones;
-            }
-
-            return data.Length > MaxZones ? MaxZones : data.Length;
-        }
-
-        private void LogZoneChangeUpdate(ElkZone zone)
-        {
-            char lastRaw;
-            if (_lastLoggedZoneRawStatus.TryGetValue(zone.Number, out lastRaw) && lastRaw == zone.RawStatus)
-            {
-                return;
-            }
-
-            _lastLoggedZoneRawStatus[zone.Number] = zone.RawStatus;
-            CrestronConsole.PrintLine("ZONE CHANGE UPDATE: " + zone);
-        }
-
         private void HandleKa(ElkPacket packet)
         {
             if (string.IsNullOrEmpty(packet.Data))
@@ -420,6 +393,128 @@ namespace SecuritySystem_Elk_M1_IP_v1
                     _state.KeypadAreas[keypadNumber] = areaNumber;
                 }
             }
+        }
+
+        private void HandleKc(ElkPacket packet)
+        {
+            if (string.IsNullOrEmpty(packet.Data) || packet.Data.Length < 18)
+            {
+                return;
+            }
+
+            int keypadNumber;
+            int keyNumber;
+
+            if (!int.TryParse(packet.Data.Substring(0, 2), out keypadNumber))
+            {
+                return;
+            }
+
+            if (!int.TryParse(packet.Data.Substring(2, 2), out keyNumber))
+            {
+                return;
+            }
+
+            ElkKeypad keypad = _state.GetOrCreateKeypad(keypadNumber);
+            keypad.LastKeyNumber = keyNumber;
+            keypad.LastKeyText = ElkKeypadDecoder.DecodeKeyNumber(keyNumber);
+
+            string ledText = packet.Data.Substring(4, 6);
+            for (int i = 0; i < 6; i++)
+            {
+                keypad.FunctionKeyLedStates[i] = ledText[i];
+            }
+
+            keypad.CodeRequiredToBypass = packet.Data[10] == '1';
+
+            string beepChime = packet.Data.Substring(11, 8);
+            for (int i = 0; i < 8; i++)
+            {
+                keypad.BeepChimeModeByArea[i] = beepChime[i];
+            }
+
+            _state.RaiseKeypadChanged(keypad);
+
+            CrestronConsole.PrintLine(
+                "KC keypad=" + keypadNumber +
+                " key=" + keypad.LastKeyText +
+                " f1=" + ElkKeypadDecoder.DecodeFunctionLedState(keypad.FunctionKeyLedStates[0]) +
+                " f2=" + ElkKeypadDecoder.DecodeFunctionLedState(keypad.FunctionKeyLedStates[1]) +
+                " f3=" + ElkKeypadDecoder.DecodeFunctionLedState(keypad.FunctionKeyLedStates[2]) +
+                " f4=" + ElkKeypadDecoder.DecodeFunctionLedState(keypad.FunctionKeyLedStates[3]) +
+                " f5=" + ElkKeypadDecoder.DecodeFunctionLedState(keypad.FunctionKeyLedStates[4]) +
+                " f6=" + ElkKeypadDecoder.DecodeFunctionLedState(keypad.FunctionKeyLedStates[5]));
+        }
+
+        private void HandleKf(ElkPacket packet)
+        {
+            if (string.IsNullOrEmpty(packet.Data) || packet.Data.Length < 11)
+            {
+                return;
+            }
+
+            int keypadNumber;
+            if (!int.TryParse(packet.Data.Substring(0, 2), out keypadNumber))
+            {
+                return;
+            }
+
+            ElkKeypad keypad = _state.GetOrCreateKeypad(keypadNumber);
+            char keyChar = packet.Data[2];
+
+            keypad.LastKeyNumber = keyChar;
+            keypad.LastKeyText = keyChar == 'C' ? "Chime" : keyChar.ToString();
+
+            string chimeModes = packet.Data.Substring(3, 8);
+            for (int i = 0; i < 8; i++)
+            {
+                ElkArea area = _state.GetOrCreateArea(i + 1);
+                char oldMode = area.ChimeModeRaw;
+
+                area.ChimeModeRaw = chimeModes[i];
+                area.ChimeModeText = ElkKeypadDecoder.DecodeAreaChimeMode(area.ChimeModeRaw);
+                area.IsChimeEnabled = ElkKeypadDecoder.IsAreaChimeEnabled(area.ChimeModeRaw);
+
+                if (oldMode != area.ChimeModeRaw)
+                {
+                    _state.RaiseAreaChanged(area);
+                }
+            }
+
+            _state.RaiseKeypadChanged(keypad);
+
+            CrestronConsole.PrintLine(
+                "KF keypad=" + keypadNumber +
+                " key=" + keypad.LastKeyText +
+                " area1Chime=" + _state.GetOrCreateArea(1).ChimeModeText +
+                " area2Chime=" + _state.GetOrCreateArea(2).ChimeModeText);
+        }
+
+        private int Get208ArrayLength(string data)
+        {
+            if (string.IsNullOrEmpty(data))
+            {
+                return 0;
+            }
+
+            if (data.Length >= MaxZones + 2)
+            {
+                return MaxZones;
+            }
+
+            return data.Length > MaxZones ? MaxZones : data.Length;
+        }
+
+        private void LogZoneChangeUpdate(ElkZone zone)
+        {
+            char lastRaw;
+            if (_lastLoggedZoneRawStatus.TryGetValue(zone.Number, out lastRaw) && lastRaw == zone.RawStatus)
+            {
+                return;
+            }
+
+            _lastLoggedZoneRawStatus[zone.Number] = zone.RawStatus;
+            CrestronConsole.PrintLine("ZONE CHANGE UPDATE: " + zone);
         }
     }
 }

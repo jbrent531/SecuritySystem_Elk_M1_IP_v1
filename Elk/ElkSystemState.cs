@@ -8,7 +8,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
         public Dictionary<int, ElkZone> Zones { get; private set; }
         public Dictionary<int, ElkArea> Areas { get; private set; }
         public Dictionary<int, int> KeypadAreas { get; private set; }
-
+        public Dictionary<int, ElkKeypad> Keypads { get; private set; }
 
         public bool IsSystemReady { get; private set; }
         public bool IsAlarmActive { get; private set; }
@@ -19,12 +19,15 @@ namespace SecuritySystem_Elk_M1_IP_v1
         public event Action<ElkArea> AreaChanged;
         public event Action<bool> SystemReadyChanged;
         public event Action<bool> AlarmActiveChanged;
+        public event Action<int, int> KeypadAreaChanged;
+        public event Action<ElkKeypad> KeypadChanged;
 
         public ElkSystemState()
         {
             Zones = new Dictionary<int, ElkZone>();
             Areas = new Dictionary<int, ElkArea>();
             KeypadAreas = new Dictionary<int, int>();
+            Keypads = new Dictionary<int, ElkKeypad>();
         }
 
         public ElkZone GetOrCreateZone(int zoneNumber)
@@ -78,13 +81,34 @@ namespace SecuritySystem_Elk_M1_IP_v1
                     IsBypassedArmed = false,
                     IsAlarm = false,
                     IsEntryDelayActive = false,
-                    DelaySeconds = 0
+                    DelaySeconds = 0,
+                    ChimeModeRaw = '0',
+                    ChimeModeText = "Off",
+                    IsChimeEnabled = false
                 };
 
                 Areas[areaNumber] = area;
             }
 
             return area;
+        }
+
+        public ElkKeypad GetOrCreateKeypad(int keypadNumber)
+        {
+            ElkKeypad keypad;
+            if (!Keypads.TryGetValue(keypadNumber, out keypad))
+            {
+                keypad = new ElkKeypad
+                {
+                    Number = keypadNumber,
+                    LastKeyNumber = 0,
+                    LastKeyText = "None"
+                };
+
+                Keypads[keypadNumber] = keypad;
+            }
+
+            return keypad;
         }
 
         public void RaiseZoneChanged(ElkZone zone)
@@ -120,6 +144,24 @@ namespace SecuritySystem_Elk_M1_IP_v1
             if (handler != null)
             {
                 handler(area);
+            }
+        }
+
+        public void RaiseKeypadAreaChanged(int keypadNumber, int areaNumber)
+        {
+            var handler = KeypadAreaChanged;
+            if (handler != null)
+            {
+                handler(keypadNumber, areaNumber);
+            }
+        }
+
+        public void RaiseKeypadChanged(ElkKeypad keypad)
+        {
+            var handler = KeypadChanged;
+            if (handler != null)
+            {
+                handler(keypad);
             }
         }
 
@@ -170,17 +212,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 {
                     alarmHandler(IsAlarmActive);
                 }
-            }
-        }
-
-        public event Action<int, int> KeypadAreaChanged;
-
-        public void RaiseKeypadAreaChanged(int keypadNumber, int areaNumber)
-        {
-            var handler = KeypadAreaChanged;
-            if (handler != null)
-            {
-                handler(keypadNumber, areaNumber);
             }
         }
     }

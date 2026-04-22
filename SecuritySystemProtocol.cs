@@ -373,21 +373,20 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
         public void TriggerFunctionButton(int buttonNumber)
         {
-            switch (buttonNumber)
+            if (buttonNumber < 1 || buttonNumber > 6)
             {
-                case 1:
-                    FireAndForget(_elkService.ArmStayAsync(_selectedArea, string.Empty));
-                    break;
-
-                case 2:
-                    FireAndForget(_elkService.ArmAwayAsync(_selectedArea, string.Empty));
-                    break;
-
-                case 3:
-                    RaiseAlarmStateChangedEvent(SecuritySystemAlarmType.Fire, true);
-                    RaiseKeypadAlarmChangedEvent(SecuritySystemAlarmType.Fire, true);
-                    break;
+                LogMessage("TriggerFunctionButton ignored. Unsupported button: " + buttonNumber);
+                return;
             }
+
+            if (_elkService == null)
+            {
+                LogMessage("TriggerFunctionButton ignored. ELK service is not initialized.");
+                return;
+            }
+
+            LogMessage("TriggerFunctionButton sending F" + buttonNumber + " to keypad " + _keypadNumber);
+            FireAndForget(_elkService.PressFunctionKeyAsync(_keypadNumber, buttonNumber));
         }
 
         private SecuritySystemOperationalResult SetZoneBypass(int zoneIndex, bool bypass, string password)
@@ -582,6 +581,8 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 LogMessage("Connected set true");
 
                 FireAndForget(PublishConfiguredZonesAfterReadyAsync());
+
+                FireAndForget(_elkService.RefreshFunctionKeyStatusAsync(_keypadNumber));
             }
             catch (Exception ex)
             {

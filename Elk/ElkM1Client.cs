@@ -38,6 +38,28 @@ namespace SecuritySystem_Elk_M1_IP_v1
             return SendRawCommandAsync("sd", data);
         }
 
+        public Task PressFunctionKeyAsync(int keypadNumber, int functionKeyNumber)
+        {
+            if (keypadNumber < 1 || keypadNumber > 16)
+                throw new ArgumentOutOfRangeException(nameof(keypadNumber), "Keypad must be between 1 and 16.");
+
+            if (functionKeyNumber < 1 || functionKeyNumber > 6)
+                throw new ArgumentOutOfRangeException(nameof(functionKeyNumber), "Function key must be between 1 and 6.");
+
+            string data = string.Format("{0:D2}{1}", keypadNumber, functionKeyNumber);
+            CrestronConsole.PrintLine("ELK FUNCTION KEY CMD: kf " + data);
+            return SendRawCommandAsync("kf", data);
+        }
+
+        public Task RequestFunctionKeyStatusAsync(int keypadNumber)
+        {
+            if (keypadNumber < 1 || keypadNumber > 16)
+                throw new ArgumentOutOfRangeException(nameof(keypadNumber), "Keypad must be between 1 and 16.");
+
+            string data = string.Format("{0:D2}00", keypadNumber);
+            return SendRawCommandAsync("kc", data);
+        }
+
         public Task ArmStayAsync(int area, string code) => SendArmCommandAsync("a2", area, code);
         public Task ArmAwayAsync(int area, string code) => SendArmCommandAsync("a1", area, code);
         public Task DisarmAsync(int area, string code) => SendArmCommandAsync("a0", area, code);

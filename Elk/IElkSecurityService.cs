@@ -25,6 +25,8 @@ namespace SecuritySystem_Elk_M1_IP_v1
         Task RefreshZonesAsync();
         Task RefreshAreasAsync();
         Task RefreshZoneNamesAsync();
+        Task PressFunctionKeyAsync(int keypadNumber, int functionKeyNumber);
+        Task RefreshFunctionKeyStatusAsync(int keypadNumber);
 
         Task ArmStayAsync(int area, string userCode);
         Task ArmAwayAsync(int area, string userCode);

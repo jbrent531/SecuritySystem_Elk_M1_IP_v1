@@ -46,26 +46,48 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 Color = SecuritySystemKeypadLedColors.Green
             };
 
-            FunctionButtons = new SecuritySystemKeypadFunctionButton[3];
+            FunctionButtons = new SecuritySystemKeypadFunctionButton[6];
+
             FunctionButtons[0] = new SecuritySystemKeypadFunctionButton(0)
             {
                 FunctionType = SecuritySystemKeypadFunctionType.Function,
-                Icon = SecuritySystemKeypadFunctionButtonIcon.Stay,
-                Label = new KeypadLabels() { PrimaryLabel = "Stay" }
+                Icon = SecuritySystemKeypadFunctionButtonIcon.Blank,
+                Label = new KeypadLabels { PrimaryLabel = "F1" }
             };
 
             FunctionButtons[1] = new SecuritySystemKeypadFunctionButton(1)
             {
                 FunctionType = SecuritySystemKeypadFunctionType.Function,
-                Icon = SecuritySystemKeypadFunctionButtonIcon.Away,
-                Label = new KeypadLabels() { PrimaryLabel = "Away" }
+                Icon = SecuritySystemKeypadFunctionButtonIcon.Blank,
+                Label = new KeypadLabels { PrimaryLabel = "F2" }
             };
 
             FunctionButtons[2] = new SecuritySystemKeypadFunctionButton(2)
             {
                 FunctionType = SecuritySystemKeypadFunctionType.Function,
-                Icon = SecuritySystemKeypadFunctionButtonIcon.Fire,
-                Label = new KeypadLabels() { PrimaryLabel = "Fire" }
+                Icon = SecuritySystemKeypadFunctionButtonIcon.Blank,
+                Label = new KeypadLabels { PrimaryLabel = "F3" }
+            };
+
+            FunctionButtons[3] = new SecuritySystemKeypadFunctionButton(3)
+            {
+                FunctionType = SecuritySystemKeypadFunctionType.Function,
+                Icon = SecuritySystemKeypadFunctionButtonIcon.Blank,
+                Label = new KeypadLabels { PrimaryLabel = "F4" }
+            };
+
+            FunctionButtons[4] = new SecuritySystemKeypadFunctionButton(4)
+            {
+                FunctionType = SecuritySystemKeypadFunctionType.Function,
+                Icon = SecuritySystemKeypadFunctionButtonIcon.Blank,
+                Label = new KeypadLabels { PrimaryLabel = "F5" }
+            };
+
+            FunctionButtons[5] = new SecuritySystemKeypadFunctionButton(5)
+            {
+                FunctionType = SecuritySystemKeypadFunctionType.Function,
+                Icon = SecuritySystemKeypadFunctionButtonIcon.Blank,
+                Label = new KeypadLabels { PrimaryLabel = "F6" }
             };
         }
 

@@ -302,5 +302,15 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 handler(active);
             }
         }
+
+        public Task PressFunctionKeyAsync(int keypadNumber, int functionKeyNumber)
+        {
+            return _client.PressFunctionKeyAsync(keypadNumber, functionKeyNumber);
+        }
+
+        public Task RefreshFunctionKeyStatusAsync(int keypadNumber)
+        {
+            return _client.RequestFunctionKeyStatusAsync(keypadNumber);
+        }
     }
 }

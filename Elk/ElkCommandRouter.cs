@@ -71,6 +71,10 @@ namespace SecuritySystem_Elk_M1_IP_v1
                     HandleSd(packet);
                     break;
 
+                case "KA":
+                    HandleKa(packet);
+                    break;
+
                 case "KC":
                 case "IC":
                 case "LD":
@@ -383,6 +387,39 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
             _lastLoggedZoneRawStatus[zone.Number] = zone.RawStatus;
             CrestronConsole.PrintLine("ZONE CHANGE UPDATE: " + zone);
+        }
+
+        private void HandleKa(ElkPacket packet)
+        {
+            if (string.IsNullOrEmpty(packet.Data))
+            {
+                return;
+            }
+
+            int count = packet.Data.Length >= 16 ? 16 : packet.Data.Length;
+
+            for (int i = 0; i < count; i++)
+            {
+                int keypadNumber = i + 1;
+                char raw = packet.Data[i];
+
+                int areaNumber = 0;
+                if (raw >= '1' && raw <= '8')
+                {
+                    areaNumber = raw - '0';
+                }
+
+                int oldArea;
+                if (!_state.KeypadAreas.TryGetValue(keypadNumber, out oldArea) || oldArea != areaNumber)
+                {
+                    _state.KeypadAreas[keypadNumber] = areaNumber;
+                    _state.RaiseKeypadAreaChanged(keypadNumber, areaNumber);
+                }
+                else
+                {
+                    _state.KeypadAreas[keypadNumber] = areaNumber;
+                }
+            }
         }
     }
 }

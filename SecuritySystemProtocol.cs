@@ -373,20 +373,33 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
         public void TriggerFunctionButton(int buttonNumber)
         {
-            if (buttonNumber < 1 || buttonNumber > 6)
-            {
-                LogMessage("TriggerFunctionButton ignored. Unsupported button: " + buttonNumber);
-                return;
-            }
-
             if (_elkService == null)
             {
                 LogMessage("TriggerFunctionButton ignored. ELK service is not initialized.");
                 return;
             }
 
-            LogMessage("TriggerFunctionButton sending F" + buttonNumber + " to keypad " + _keypadNumber);
-            FireAndForget(_elkService.PressFunctionKeyAsync(_keypadNumber, buttonNumber));
+            if (buttonNumber >= 1 && buttonNumber <= 6)
+            {
+                LogMessage("TriggerFunctionButton sending F" + buttonNumber + " to keypad " + _keypadNumber);
+                FireAndForget(_elkService.PressFunctionKeyAsync(_keypadNumber, buttonNumber));
+                return;
+            }
+
+            if (buttonNumber == 7)
+            {
+                LogMessage("TriggerFunctionButton sending Chime toggle to keypad " + _keypadNumber);
+                FireAndForget(_elkService.ToggleChimeAsync(_keypadNumber));
+                return;
+            }
+
+            LogMessage("TriggerFunctionButton ignored. Unsupported button index: " + buttonNumber);
+        }
+
+        private Task ToggleChimeAsync()
+        {
+            const int chimeTaskNumber = 1;
+            return _elkService.ActivateTaskAsync(chimeTaskNumber);
         }
 
         private SecuritySystemOperationalResult SetZoneBypass(int zoneIndex, bool bypass, string password)
@@ -648,13 +661,12 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 return;
             }
 
-            foreach (int areaNumber in _discoveredAreaNumbers.OrderBy(x => x))
+            int areaNumber = _elkService.GetKeypadArea(_keypadNumber);
+
+            ElkArea area;
+            if (_elkService.Areas.TryGetValue(areaNumber, out area) && area != null)
             {
-                ElkArea area;
-                if (_elkService.Areas.TryGetValue(areaNumber, out area) && area != null)
-                {
-                    OnElkAreaChanged(area);
-                }
+                OnElkAreaChanged(area);
             }
 
             OnElkSystemReadyChanged(_elkService.IsSystemReady);
@@ -843,21 +855,32 @@ namespace SecuritySystem_Elk_M1_IP_v1
             bool isStay = IsStay(elkArea);
             bool isAway = IsAway(elkArea);
             bool isDisarmed = !isStay && !isAway;
-
-            RaiseAreaStateChangedEvent(SecuritySystemState.Disarmed, isDisarmed);
-            RaiseAreaStateChangedEvent(SecuritySystemState.ArmedStay, isStay);
-            RaiseAreaStateChangedEvent(SecuritySystemState.ArmedAway, isAway);
-
-            RaiseKeypadStateChangedEvent(SecuritySystemState.Disarmed, isDisarmed);
-            RaiseKeypadStateChangedEvent(SecuritySystemState.ArmedStay, isStay);
-            RaiseKeypadStateChangedEvent(SecuritySystemState.ArmedAway, isAway);
-
             bool burglaryActive = elkArea.IsAlarm;
-            RaiseAlarmStateChangedEvent(SecuritySystemAlarmType.Alarm, burglaryActive);
-            RaiseAlarmStateChangedEvent(SecuritySystemAlarmType.Burglary, burglaryActive);
 
-            RaiseKeypadAlarmChangedEvent(SecuritySystemAlarmType.Alarm, burglaryActive);
-            RaiseKeypadAlarmChangedEvent(SecuritySystemAlarmType.Burglary, burglaryActive);
+            area.UpdateArmingState(SecuritySystemState.Disarmed, isDisarmed);
+            area.UpdateArmingState(SecuritySystemState.ArmedStay, isStay);
+            area.UpdateArmingState(SecuritySystemState.ArmedAway, isAway);
+
+            area.UpdateAlarmState(SecuritySystemAlarmType.Alarm, burglaryActive);
+            area.UpdateAlarmState(SecuritySystemAlarmType.Burglary, burglaryActive);
+
+            int keypadArea = 1;
+            if (_elkService != null)
+            {
+                keypadArea = _elkService.GetKeypadArea(_keypadNumber);
+            }
+
+            if (elkArea.Number == keypadArea)
+            {
+                RaiseKeypadStateChangedEvent(SecuritySystemState.Disarmed, isDisarmed);
+                RaiseKeypadStateChangedEvent(SecuritySystemState.ArmedStay, isStay);
+                RaiseKeypadStateChangedEvent(SecuritySystemState.ArmedAway, isAway);
+
+                RaiseKeypadAlarmChangedEvent(SecuritySystemAlarmType.Alarm, burglaryActive);
+                RaiseKeypadAlarmChangedEvent(SecuritySystemAlarmType.Burglary, burglaryActive);
+            }
+
+            LogMessage("OnElkAreaChanged area=" + elkArea.Number + " keypadArea=" + keypadArea);
         }
 
 
@@ -1143,12 +1166,21 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
         private int GetPrimaryArea(List<int> areaIndexes)
         {
-            if (areaIndexes == null || areaIndexes.Count == 0)
+            if (areaIndexes != null && areaIndexes.Count > 0 && areaIndexes[0] > 0)
             {
-                return _selectedArea;
+                return areaIndexes[0];
             }
 
-            return areaIndexes[0] > 0 ? areaIndexes[0] : _selectedArea;
+            if (_elkService != null)
+            {
+                int keypadArea = _elkService.GetKeypadArea(_keypadNumber);
+                if (keypadArea >= 1 && keypadArea <= 8)
+                {
+                    return keypadArea;
+                }
+            }
+
+            return 1;
         }
 
         private void SetConnected(bool connected)

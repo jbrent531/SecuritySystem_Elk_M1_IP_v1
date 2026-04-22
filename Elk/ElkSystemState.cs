@@ -7,6 +7,8 @@ namespace SecuritySystem_Elk_M1_IP_v1
     {
         public Dictionary<int, ElkZone> Zones { get; private set; }
         public Dictionary<int, ElkArea> Areas { get; private set; }
+        public Dictionary<int, int> KeypadAreas { get; private set; }
+
 
         public bool IsSystemReady { get; private set; }
         public bool IsAlarmActive { get; private set; }
@@ -22,6 +24,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
         {
             Zones = new Dictionary<int, ElkZone>();
             Areas = new Dictionary<int, ElkArea>();
+            KeypadAreas = new Dictionary<int, int>();
         }
 
         public ElkZone GetOrCreateZone(int zoneNumber)
@@ -167,6 +170,17 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 {
                     alarmHandler(IsAlarmActive);
                 }
+            }
+        }
+
+        public event Action<int, int> KeypadAreaChanged;
+
+        public void RaiseKeypadAreaChanged(int keypadNumber, int areaNumber)
+        {
+            var handler = KeypadAreaChanged;
+            if (handler != null)
+            {
+                handler(keypadNumber, areaNumber);
             }
         }
     }

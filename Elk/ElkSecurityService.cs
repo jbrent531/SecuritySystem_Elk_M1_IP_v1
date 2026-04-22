@@ -154,6 +154,9 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
             await RefreshAreaNamesAsync();
             await Task.Delay(250);
+
+            await _client.RequestKeypadAreaAssignmentsAsync();
+            await Task.Delay(250);
         }
 
         public async Task RefreshAreaNamesAsync()
@@ -164,6 +167,16 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 await _client.RequestTextDescriptionAsync(1, area);
                 await Task.Delay(20);
             }
+        }
+
+        public Task ToggleChimeAsync(int keypadNumber)
+        {
+            return _client.ToggleChimeAsync(keypadNumber);
+        }
+
+        public Task ActivateTaskAsync(int taskNumber)
+        {
+            return _client.ActivateTaskAsync(taskNumber);
         }
 
         private async Task PollLoopAsync(CancellationToken token)
@@ -311,6 +324,22 @@ namespace SecuritySystem_Elk_M1_IP_v1
         public Task RefreshFunctionKeyStatusAsync(int keypadNumber)
         {
             return _client.RequestFunctionKeyStatusAsync(keypadNumber);
+        }
+
+        public Task RefreshKeypadAreasAsync()
+        {
+            return _client.RequestKeypadAreaAssignmentsAsync();
+        }
+
+        public int GetKeypadArea(int keypadNumber)
+        {
+            int area;
+            if (_state.KeypadAreas.TryGetValue(keypadNumber, out area) && area >= 1 && area <= 8)
+            {
+                return area;
+            }
+
+            return 1;
         }
     }
 }

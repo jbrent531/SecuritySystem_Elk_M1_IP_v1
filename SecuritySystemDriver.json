@@ -34,19 +34,6 @@
     "UserAttributes": [
       {
         "TypeName": "Custom",
-        "ParameterId": "KeypadNumber",
-        "Label": "Keypad",
-        "Description": "Elk keypad number. Valid range: 1-16",
-        "Persistent": true,
-        "RequiredForConnection": "Before",
-        "Data": {
-          "DataType": "String",
-          "Mask": "",
-          "DefaultValue": "1"
-        }
-      },
-      {
-        "TypeName": "Custom",
         "ParameterId": "StartupDelaySeconds",
         "Label": "Startup Delay",
         "Description": "Delay driver initialization in seconds",

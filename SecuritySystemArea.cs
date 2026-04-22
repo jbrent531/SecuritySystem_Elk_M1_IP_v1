@@ -45,8 +45,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
             if (_securitySystemProtocol != null)
             {
                 _securitySystemProtocol.ZoneListChanged += OnProtocolZoneListChanged;
-                _securitySystemProtocol.KeypadChange += OnProtocolKeypadChanged;
-                _securitySystemProtocol.KeypadAlarmChange += OnProtocolAlarmChanged;
             }
 
             EnsureAreaZonesLoaded();
@@ -230,34 +228,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
             return -1;
         }
 
-        private void OnProtocolKeypadChanged(object changedObject)
-        {
-            SecuritySystemStateArgs obj = changedObject as SecuritySystemStateArgs;
-            if (obj == null)
-            {
-                return;
-            }
-
-            switch (obj.EventType)
-            {
-                case SecuritySystemState.ArmedAway:
-                case SecuritySystemState.ArmedStay:
-                case SecuritySystemState.Disarmed:
-                    UpdateArmingState(obj.EventType, obj.State);
-                    break;
-            }
-        }
-
-        private void OnProtocolAlarmChanged(object changedObject)
-        {
-            SecuritySystemAlarmStateArgs obj = changedObject as SecuritySystemAlarmStateArgs;
-            if (obj != null && obj.Alarm != null)
-            {
-                UpdateAlarmState(obj.Alarm.AlarmType, obj.State);
-            }
-        }
-
-        private void UpdateArmingState(SecuritySystemState state, bool active)
+        public void UpdateArmingState(SecuritySystemState state, bool active)
         {
             ListChangedEventArgs<SecuritySystemState> e = null;
 
@@ -297,7 +268,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
             }
         }
 
-        private void UpdateAlarmState(SecuritySystemAlarmType type, bool active)
+        public void UpdateAlarmState(SecuritySystemAlarmType type, bool active)
         {
             ListChangedEventArgs<SecuritySystemAlarmType> e = null;
 
@@ -374,8 +345,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
             if (_securitySystemProtocol != null)
             {
                 _securitySystemProtocol.ZoneListChanged -= OnProtocolZoneListChanged;
-                _securitySystemProtocol.KeypadChange -= OnProtocolKeypadChanged;
-                _securitySystemProtocol.KeypadAlarmChange -= OnProtocolAlarmChanged;
             }
 
             _disposed = true;

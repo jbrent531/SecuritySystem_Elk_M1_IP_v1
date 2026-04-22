@@ -46,7 +46,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 Color = SecuritySystemKeypadLedColors.Green
             };
 
-            FunctionButtons = new SecuritySystemKeypadFunctionButton[6];
+            FunctionButtons = new SecuritySystemKeypadFunctionButton[7];
 
             FunctionButtons[0] = new SecuritySystemKeypadFunctionButton(0)
             {
@@ -88,6 +88,13 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 FunctionType = SecuritySystemKeypadFunctionType.Function,
                 Icon = SecuritySystemKeypadFunctionButtonIcon.Blank,
                 Label = new KeypadLabels { PrimaryLabel = "F6" }
+            };
+
+            FunctionButtons[6] = new SecuritySystemKeypadFunctionButton(6)
+            {
+                FunctionType = SecuritySystemKeypadFunctionType.Function,
+                Icon = SecuritySystemKeypadFunctionButtonIcon.Blank,
+                Label = new KeypadLabels { PrimaryLabel = "Chime" }
             };
         }
 

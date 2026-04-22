@@ -19,6 +19,11 @@ namespace SecuritySystem_Elk_M1_IP_v1
             return _transport.SendAsciiAsync(packet);
         }
 
+        public Task RequestKeypadAreaAssignmentsAsync()
+        {
+            return SendRawCommandAsync("ka", "00");
+        }
+
         public Task RequestArmingStatusAsync() => SendRawCommandAsync("as", "00");
         public Task RequestZoneStatusAsync() => SendRawCommandAsync("zs", "00");
         public Task RequestZoneDefinitionsAsync() => SendRawCommandAsync("zd", "00");
@@ -58,6 +63,25 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
             string data = string.Format("{0:D2}00", keypadNumber);
             return SendRawCommandAsync("kc", data);
+        }
+
+        public Task ActivateTaskAsync(int taskNumber)
+        {
+            if (taskNumber < 1 || taskNumber > 32)
+                throw new ArgumentOutOfRangeException(nameof(taskNumber), "Task must be between 1 and 32.");
+
+            string data = string.Format("{0:D3}00", taskNumber);
+            return SendRawCommandAsync("tn", data);
+        }
+
+        public Task ToggleChimeAsync(int keypadNumber)
+        {
+            if (keypadNumber < 1 || keypadNumber > 16)
+                throw new ArgumentOutOfRangeException(nameof(keypadNumber), "Keypad must be between 1 and 16.");
+
+            string data = string.Format("{0:D2}C00", keypadNumber);
+            CrestronConsole.PrintLine("ELK CHIME CMD: kf " + data);
+            return SendRawCommandAsync("kf", data);
         }
 
         public Task ArmStayAsync(int area, string code) => SendArmCommandAsync("a2", area, code);

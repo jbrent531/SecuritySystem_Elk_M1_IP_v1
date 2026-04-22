@@ -18,6 +18,14 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
         bool IsSystemReady { get; }
         bool IsAlarmActive { get; }
+        int GetKeypadArea(int keypadNumber);
+
+
+        Task RefreshKeypadAreasAsync();
+
+        Task ActivateTaskAsync(int taskNumber);
+
+        Task ToggleChimeAsync(int keypadNumber);
 
         Task StartAsync(string host, int port);
         Task StopAsync();

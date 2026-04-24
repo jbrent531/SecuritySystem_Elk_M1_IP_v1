@@ -1,5 +1,8 @@
 ﻿namespace SecuritySystem_Elk_M1_IP_v1
 {
+
+    // Decodes keypad-related values returned by KC and KF messages.
+    // This includes function key LEDs, area chime modes, and keypad beep/chime indicators.
     public static class ElkKeypadDecoder
     {
         public static string DecodeKeyNumber(int keyNumber)

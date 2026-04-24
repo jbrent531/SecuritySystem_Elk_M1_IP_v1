@@ -9,8 +9,11 @@ using Crestron.RAD.DeviceTypes.SecuritySystem;
 
 namespace SecuritySystem_Elk_M1_IP_v1
 {
+    // Crestron RAD area model populated from ELK area state.
+    // Instances of this class represent the areas exposed to the platform.
     public class SecuritySystemArea : ISecuritySystemArea, IDisposable
     {
+        #region Fields
         private readonly List<SecuritySystemAreaCommand> _availableAreaCommands;
         private readonly ReadOnlyCollection<SecuritySystemState> _supportedArmingStates;
         private readonly ReadOnlyCollection<SecuritySystemAlarmType> _supportedAlarmTypes;
@@ -23,6 +26,14 @@ namespace SecuritySystem_Elk_M1_IP_v1
         private bool _disposed;
         private string _name;
 
+        public event EventHandler<ValueEventArgs<string>> NameChanged;
+        public event EventHandler<ListChangedEventArgs<SecuritySystemAlarmType>> SecuritysystemAlarmStateChangedEvent;
+        public event EventHandler<ListChangedEventArgs<SecuritySystemState>> SecuritysystemAreaStateChangedEvent;
+        public event EventHandler<ListChangedEventArgs<ISecuritySystemZone>> ZoneListChangedEvent;
+        #endregion
+
+
+        //Constructor
         public SecuritySystemArea(
             string name,
             int index,
@@ -50,8 +61,9 @@ namespace SecuritySystem_Elk_M1_IP_v1
             EnsureAreaZonesLoaded();
         }
 
-        public int Index { get; set; }
 
+
+        public int Index { get; set; }
         public string Name
         {
             get { return _name; }
@@ -62,26 +74,99 @@ namespace SecuritySystem_Elk_M1_IP_v1
             }
         }
 
-        public event EventHandler<ValueEventArgs<string>> NameChanged;
-        public event EventHandler<ListChangedEventArgs<SecuritySystemAlarmType>> SecuritysystemAlarmStateChangedEvent;
-        public event EventHandler<ListChangedEventArgs<SecuritySystemState>> SecuritysystemAreaStateChangedEvent;
-        public event EventHandler<ListChangedEventArgs<ISecuritySystemZone>> ZoneListChangedEvent;
 
         public IEnumerable<SecuritySystemAlarmType> GetActiveAlarms()
         {
             return _activeAreaAlarms;
         }
+        public void UpdateArmingState(SecuritySystemState state, bool active)
+        {
+            ListChangedEventArgs<SecuritySystemState> e = null;
+
+            if (active)
+            {
+                if (!_activeAreaStates.Contains(state))
+                {
+                    int count = _activeAreaStates.Count;
+                    _activeAreaStates.Add(state);
+                    e = new ListChangedEventArgs<SecuritySystemState>(
+                        ListChangedAction.Added,
+                        SecuritySystemState.Unknown,
+                        state,
+                        count);
+                }
+            }
+            else
+            {
+                if (_activeAreaStates.Contains(state))
+                {
+                    int index = _activeAreaStates.IndexOf(state);
+                    if (index >= 0)
+                    {
+                        _activeAreaStates.Remove(state);
+                        e = new ListChangedEventArgs<SecuritySystemState>(
+                            ListChangedAction.Removed,
+                            state,
+                            SecuritySystemState.Unknown,
+                            index);
+                    }
+                }
+            }
+
+            if (e != null)
+            {
+                RaiseStateChangedEvent(e);
+            }
+        }
+        public void UpdateAlarmState(SecuritySystemAlarmType type, bool active)
+        {
+            ListChangedEventArgs<SecuritySystemAlarmType> e = null;
+
+            if (active)
+            {
+                if (!_activeAreaAlarms.Contains(type))
+                {
+                    int count = _activeAreaAlarms.Count;
+                    _activeAreaAlarms.Add(type);
+                    e = new ListChangedEventArgs<SecuritySystemAlarmType>(
+                        ListChangedAction.Added,
+                        SecuritySystemAlarmType.Unknown,
+                        type,
+                        count);
+                }
+            }
+            else
+            {
+                if (_activeAreaAlarms.Contains(type))
+                {
+                    int index = _activeAreaAlarms.IndexOf(type);
+                    if (index >= 0)
+                    {
+                        _activeAreaAlarms.Remove(type);
+                        e = new ListChangedEventArgs<SecuritySystemAlarmType>(
+                            ListChangedAction.Removed,
+                            type,
+                            SecuritySystemAlarmType.Unknown,
+                            index);
+                    }
+                }
+            }
+
+            if (e != null)
+            {
+                RaiseAlarmStateChangedEvent(e);
+            }
+        }
+
 
         public IEnumerable<SecuritySystemState> GetActiveStates()
         {
             return _activeAreaStates;
         }
-
         public ReadOnlyCollection<SecuritySystemAlarmType> GetSupportedAlarmTypes()
         {
             return _supportedAlarmTypes;
         }
-
         public ReadOnlyCollection<SecuritySystemState> GetSupportedArmingStates()
         {
             return _supportedArmingStates;
@@ -95,7 +180,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 .OrderBy(kvp => kvp.Key)
                 .ToList();
         }
-
         public IEnumerable<ISecuritySystemZone> GetVisibleZones()
         {
             EnsureAreaZonesLoaded();
@@ -105,46 +189,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 .Select(kvp => kvp.Value)
                 .ToList();
         }
-
-
-        public SecuritySystemOperationalResult SendAreaCommand(int commandIndex, string password)
-        {
-            SecuritySystemAreaCommand areaCommand = null;
-
-            if (_availableAreaCommands != null)
-            {
-                foreach (SecuritySystemAreaCommand command in _availableAreaCommands)
-                {
-                    if (command.Index == commandIndex)
-                    {
-                        areaCommand = command;
-                        break;
-                    }
-                }
-            }
-
-            if (areaCommand == null)
-            {
-                SecuritySystemOperationalResult invalid = new SecuritySystemOperationalResult(0)
-                {
-                    Result = SecuritySystemOperationalResultCode.InvalidIdParameters
-                };
-                return invalid;
-            }
-
-            if (areaCommand.PasswordRequired && string.IsNullOrWhiteSpace(password))
-            {
-                SecuritySystemOperationalResult missingPassword = new SecuritySystemOperationalResult(0)
-                {
-                    Result = SecuritySystemOperationalResultCode.InvalidPasscode
-                };
-                return missingPassword;
-            }
-
-            List<int> areaIndexes = new List<int> { Index };
-            return _securitySystemProtocol.ExecuteSecurityCommands(areaIndexes, commandIndex, password);
-        }
-
         private void EnsureAreaZonesLoaded()
         {
             _zonesInArea.Clear();
@@ -173,7 +217,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 }
             }
         }
-
         private void OnProtocolZoneListChanged(object sender, ListChangedEventArgs<ISecuritySystemZone> e)
         {
             if (e == null || e.ChangedAction != ListChangedAction.Added || e.NewItem == null)
@@ -228,85 +271,45 @@ namespace SecuritySystem_Elk_M1_IP_v1
             return -1;
         }
 
-        public void UpdateArmingState(SecuritySystemState state, bool active)
-        {
-            ListChangedEventArgs<SecuritySystemState> e = null;
 
-            if (active)
+        public SecuritySystemOperationalResult SendAreaCommand(int commandIndex, string password)
+        {
+            SecuritySystemAreaCommand areaCommand = null;
+
+            if (_availableAreaCommands != null)
             {
-                if (!_activeAreaStates.Contains(state))
+                foreach (SecuritySystemAreaCommand command in _availableAreaCommands)
                 {
-                    int count = _activeAreaStates.Count;
-                    _activeAreaStates.Add(state);
-                    e = new ListChangedEventArgs<SecuritySystemState>(
-                        ListChangedAction.Added,
-                        SecuritySystemState.Unknown,
-                        state,
-                        count);
-                }
-            }
-            else
-            {
-                if (_activeAreaStates.Contains(state))
-                {
-                    int index = _activeAreaStates.IndexOf(state);
-                    if (index >= 0)
+                    if (command.Index == commandIndex)
                     {
-                        _activeAreaStates.Remove(state);
-                        e = new ListChangedEventArgs<SecuritySystemState>(
-                            ListChangedAction.Removed,
-                            state,
-                            SecuritySystemState.Unknown,
-                            index);
+                        areaCommand = command;
+                        break;
                     }
                 }
             }
 
-            if (e != null)
+            if (areaCommand == null)
             {
-                RaiseStateChangedEvent(e);
+                SecuritySystemOperationalResult invalid = new SecuritySystemOperationalResult(0)
+                {
+                    Result = SecuritySystemOperationalResultCode.InvalidIdParameters
+                };
+                return invalid;
             }
+
+            if (areaCommand.PasswordRequired && string.IsNullOrWhiteSpace(password))
+            {
+                SecuritySystemOperationalResult missingPassword = new SecuritySystemOperationalResult(0)
+                {
+                    Result = SecuritySystemOperationalResultCode.InvalidPasscode
+                };
+                return missingPassword;
+            }
+
+            List<int> areaIndexes = new List<int> { Index };
+            return _securitySystemProtocol.ExecuteSecurityCommands(areaIndexes, commandIndex, password);
         }
 
-        public void UpdateAlarmState(SecuritySystemAlarmType type, bool active)
-        {
-            ListChangedEventArgs<SecuritySystemAlarmType> e = null;
-
-            if (active)
-            {
-                if (!_activeAreaAlarms.Contains(type))
-                {
-                    int count = _activeAreaAlarms.Count;
-                    _activeAreaAlarms.Add(type);
-                    e = new ListChangedEventArgs<SecuritySystemAlarmType>(
-                        ListChangedAction.Added,
-                        SecuritySystemAlarmType.Unknown,
-                        type,
-                        count);
-                }
-            }
-            else
-            {
-                if (_activeAreaAlarms.Contains(type))
-                {
-                    int index = _activeAreaAlarms.IndexOf(type);
-                    if (index >= 0)
-                    {
-                        _activeAreaAlarms.Remove(type);
-                        e = new ListChangedEventArgs<SecuritySystemAlarmType>(
-                            ListChangedAction.Removed,
-                            type,
-                            SecuritySystemAlarmType.Unknown,
-                            index);
-                    }
-                }
-            }
-
-            if (e != null)
-            {
-                RaiseAlarmStateChangedEvent(e);
-            }
-        }
 
         private void RaiseNameChangedEvent()
         {
@@ -325,7 +328,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 handler(this, e);
             }
         }
-
         private void RaiseAlarmStateChangedEvent(ListChangedEventArgs<SecuritySystemAlarmType> e)
         {
             EventHandler<ListChangedEventArgs<SecuritySystemAlarmType>> handler = SecuritysystemAlarmStateChangedEvent;

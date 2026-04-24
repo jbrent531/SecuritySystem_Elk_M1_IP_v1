@@ -304,108 +304,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 return failed;
             }
         }
-
-        public void SendKeypadNumber(uint num)
-        {
-            SendKeypadString(num.ToString());
-        }
-
-        public void SendKeypadPound()
-        {
-            SendKeypadString("#");
-        }
-
-        public void SendKeypadAsterisk()
-        {
-            SendKeypadString("*");
-        }
-
-        public void SendKeypadPeriod()
-        {
-            SendKeypadString(".");
-        }
-
-        public void SendKeypadDash()
-        {
-            SendKeypadString("-");
-        }
-
-        public void SendKeypadString(string keys)
-        {
-            if (string.IsNullOrEmpty(keys))
-            {
-                return;
-            }
-
-            if (keys.Length > 20)
-            {
-                keys = keys.Substring(0, 20);
-            }
-        }
-
-        public void SendKeypadBackSpace()
-        {
-        }
-
-        public void SendKeypadArrowKeys(ArrowDirections direction)
-        {
-        }
-
-        public void SendKeypadEnter()
-        {
-        }
-
-        public void SendKeypadClear()
-        {
-        }
-
-        public void SendKeypadExit()
-        {
-        }
-
-        public void SendKeypadHome()
-        {
-        }
-
-        public void SendKeypadMenu()
-        {
-        }
-
-        public void TriggerFunctionButton(int buttonNumber)
-        {
-            if (_elkService == null)
-            {
-                LogMessage("TriggerFunctionButton ignored. ELK service is not initialized.");
-                return;
-            }
-
-            if (buttonNumber >= 1 && buttonNumber <= 6)
-            {
-                LogMessage("TriggerFunctionButton sending F" + buttonNumber + " to keypad " + _keypadNumber);
-                FireAndForget(_elkService.PressFunctionKeyAsync(_keypadNumber, buttonNumber));
-                return;
-            }
-
-            if (buttonNumber == 7)
-            {
-                LogMessage("TriggerFunctionButton sending Chime toggle to keypad " + _keypadNumber);
-                FireAndForget(_elkService.ToggleChimeAsync(_keypadNumber));
-                return;
-            }
-
-            LogMessage("TriggerFunctionButton ignored. Unsupported button index: " + buttonNumber);
-        }
-
-        private Task ToggleChimeAsync()
-        {
-            if (_elkService == null)
-            {
-                throw new InvalidOperationException("ELK service is not initialized.");
-            }
-
-            return _elkService.ToggleChimeAsync(_keypadNumber);
-        }
-
         private SecuritySystemOperationalResult SetZoneBypass(int zoneIndex, bool bypass, string password)
         {
             SecuritySystemZone zone = GetZone(zoneIndex);
@@ -454,6 +352,87 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 };
             }
         }
+
+
+        public void SendKeypadNumber(uint num)
+        {
+            SendKeypadString(num.ToString());
+        }
+        public void SendKeypadPound()
+        {
+            SendKeypadString("#");
+        }
+        public void SendKeypadAsterisk()
+        {
+            SendKeypadString("*");
+        }
+        public void SendKeypadPeriod()
+        {
+            SendKeypadString(".");
+        }
+        public void SendKeypadDash()
+        {
+            SendKeypadString("-");
+        }
+        public void SendKeypadString(string keys)
+        {
+            if (string.IsNullOrEmpty(keys))
+            {
+                return;
+            }
+
+            if (keys.Length > 20)
+            {
+                keys = keys.Substring(0, 20);
+            }
+        }
+        public void SendKeypadBackSpace()
+        {
+        }
+        public void SendKeypadArrowKeys(ArrowDirections direction)
+        {
+        }
+        public void SendKeypadEnter()
+        {
+        }
+        public void SendKeypadClear()
+        {
+        }
+        public void SendKeypadExit()
+        {
+        }
+        public void SendKeypadHome()
+        {
+        }
+        public void SendKeypadMenu()
+        {
+        }
+        public void TriggerFunctionButton(int buttonNumber)
+        {
+            if (_elkService == null)
+            {
+                LogMessage("TriggerFunctionButton ignored. ELK service is not initialized.");
+                return;
+            }
+
+            if (buttonNumber >= 1 && buttonNumber <= 6)
+            {
+                LogMessage("TriggerFunctionButton sending F" + buttonNumber + " to keypad " + _keypadNumber);
+                FireAndForget(_elkService.PressFunctionKeyAsync(_keypadNumber, buttonNumber));
+                return;
+            }
+
+            if (buttonNumber == 7)
+            {
+                LogMessage("TriggerFunctionButton sending Chime toggle to keypad " + _keypadNumber);
+                FireAndForget(_elkService.ToggleChimeAsync(_keypadNumber));
+                return;
+            }
+
+            LogMessage("TriggerFunctionButton ignored. Unsupported button index: " + buttonNumber);
+        }
+
+
 
         protected override void ChooseDeconstructMethod(ValidatedRxData validatedData)
         {
@@ -983,27 +962,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
 
 
-
-        private void PublishCurrentState()
-        {
-            if (_elkService == null || !_structureInitialized)
-            {
-                return;
-            }
-
-            foreach (int areaNumber in _discoveredAreaNumbers.OrderBy(x => x))
-            {
-                ElkArea area;
-                if (_elkService.Areas.TryGetValue(areaNumber, out area) && area != null)
-                {
-                    OnElkAreaChanged(area);
-                }
-            }
-
-            OnElkSystemReadyChanged(_elkService.IsSystemReady);
-            OnElkAlarmActiveChanged(_elkService.IsAlarmActive);
-        }
-
         private SecuritySystemArea EnsureAreaExists(int areaIndex)
         {
             SecuritySystemArea area;
@@ -1232,27 +1190,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
             }
         }
 
-        private SecuritySystemArea EnsureSelectedAreaContainer()
-        {
-            SecuritySystemArea existing;
-            if (_areaLookup.TryGetValue(_selectedArea, out existing))
-            {
-                return existing;
-            }
-
-            return EnsureAreaExists(_selectedArea);
-        }
-
-
-
-        private void EnsureConfiguredZonesExist()
-        {
-            foreach (int zoneNumber in _configuredZoneSet.OrderBy(x => x))
-            {
-                bool isNew;
-                FindOrCreateZone(zoneNumber, out isNew);
-            }
-        }
 
         private bool ShouldExposeZone(int zoneNumber)
         {

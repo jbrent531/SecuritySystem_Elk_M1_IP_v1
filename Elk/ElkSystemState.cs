@@ -5,6 +5,8 @@ namespace SecuritySystem_Elk_M1_IP_v1
 {
     public sealed class ElkSystemState
     {
+
+        #region Properties
         public Dictionary<int, ElkZone> Zones { get; private set; }
         public Dictionary<int, ElkArea> Areas { get; private set; }
         public Dictionary<int, int> KeypadAreas { get; private set; }
@@ -14,7 +16,9 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
         public bool IsSystemReady { get; private set; }
         public bool IsAlarmActive { get; private set; }
+        #endregion
 
+        #region Fields
         public event Action<ElkZone> ZoneChanged;
         public event Action<ElkZone> ZoneNameChanged;
         public event Action<ElkZone> ZoneBypassChanged;
@@ -25,7 +29,10 @@ namespace SecuritySystem_Elk_M1_IP_v1
         public event Action<ElkKeypad> KeypadChanged;
         public event Action<ElkSystemTroubleState> SystemTroubleChanged;
         public event Action<ElkUserCodeEvent> UserCodeEventReceived;
+        #endregion
 
+
+        //Constructor
         public ElkSystemState()
         {
             Zones = new Dictionary<int, ElkZone>();
@@ -46,7 +53,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 handler(LastUserCodeEvent);
             }
         }
-
 
         public ElkZone GetOrCreateZone(int zoneNumber)
         {
@@ -77,7 +83,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
             return zone;
         }
-
         public ElkArea GetOrCreateArea(int areaNumber)
         {
             ElkArea area;
@@ -112,7 +117,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
             return area;
         }
-
         public ElkKeypad GetOrCreateKeypad(int keypadNumber)
         {
             ElkKeypad keypad;
@@ -139,7 +143,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 handler(zone);
             }
         }
-
         public void RaiseZoneNameChanged(ElkZone zone)
         {
             var handler = ZoneNameChanged;
@@ -148,7 +151,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 handler(zone);
             }
         }
-
         public void RaiseZoneBypassChanged(ElkZone zone)
         {
             var handler = ZoneBypassChanged;
@@ -157,7 +159,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 handler(zone);
             }
         }
-
         public void RaiseAreaChanged(ElkArea area)
         {
             var handler = AreaChanged;
@@ -166,7 +167,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 handler(area);
             }
         }
-
         public void RaiseKeypadAreaChanged(int keypadNumber, int areaNumber)
         {
             var handler = KeypadAreaChanged;
@@ -175,7 +175,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 handler(keypadNumber, areaNumber);
             }
         }
-
         public void RaiseKeypadChanged(ElkKeypad keypad)
         {
             var handler = KeypadChanged;
@@ -184,6 +183,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 handler(keypad);
             }
         }
+
 
         public void SetSystemTrouble(ElkSystemTroubleState state)
         {

@@ -3,6 +3,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
 {
     public sealed class ElkZone
     {
+        #region Properties
         public int Number { get; set; }
         public string Name { get; set; }
         public char RawStatus { get; set; }
@@ -19,6 +20,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
         public string DefinitionText { get; set; }
         public string ZoneTypeText { get; set; }
+        #endregion
 
         public override string ToString()
         {

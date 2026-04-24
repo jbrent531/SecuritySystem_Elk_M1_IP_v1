@@ -1,5 +1,9 @@
 ﻿namespace SecuritySystem_Elk_M1_IP_v1
 {
+
+    // Decodes ELK zone definition characters from ZD responses.
+    // The driver uses these definitions to label zones by purpose, such as entry/exit, motion, smoke, CO, or water.
+
     public static class ElkZoneDefinitionDecoder
     {
         public static string Decode(char raw)

@@ -2,6 +2,9 @@ using Crestron.SimplSharp;
 
 namespace SecuritySystem_Elk_M1_IP_v1
 {
+
+    // Applies decoded ELK zone status to the in-memory zone model.
+    // This is where raw ZS/ZC values become the driver's open, trouble, violated, bypassed, and faulted flags.
     public static class ElkZoneMapper
     {
         public static void ApplyStatus(ElkZone zone, char rawStatus)

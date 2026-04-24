@@ -24,11 +24,8 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
         #endregion
 
-        #region Ctor
+        #region Constructor
 
-        /// <summary>
-        /// Default constructor
-        /// </summary>
         public SecuritySystemKeypad()
         {
             Leds = new SecuritySystemKeypadLed[3];

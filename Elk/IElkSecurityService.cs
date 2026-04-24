@@ -4,6 +4,8 @@ using System.Threading.Tasks;
 
 namespace SecuritySystem_Elk_M1_IP_v1
 {
+    // Contract used by the protocol layer to talk to the ELK service.
+    // It exposes the operations and events the Crestron-facing adapter needs without binding to implementation details.
     public interface IElkSecurityService
     {
         event Action<ElkZone> ZoneChanged;

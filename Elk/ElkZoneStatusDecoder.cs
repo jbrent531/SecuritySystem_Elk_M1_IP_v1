@@ -1,5 +1,8 @@
 namespace SecuritySystem_Elk_M1_IP_v1
 {
+
+    // Decodes per-zone status characters from ZS and ZC responses.
+    // ELK compresses zone state into a single hex-like character that represents both condition and wiring state.
     public static class ElkZoneStatusDecoder
     {
         public static string Decode(char raw)

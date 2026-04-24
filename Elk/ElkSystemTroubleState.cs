@@ -6,6 +6,8 @@ namespace SecuritySystem_Elk_M1_IP_v1
 {
     public sealed class ElkSystemTroubleState
     {
+
+        #region Properties
         public char[] RawFields { get; private set; }
         public string KeypadLine1 { get; set; }
         public string KeypadLine2 { get; set; }
@@ -31,7 +33,9 @@ namespace SecuritySystem_Elk_M1_IP_v1
         public bool GeSmokeCleanMe { get; set; }
         public bool EthernetTrouble { get; set; }
         public int FireTroubleZone { get; set; }
+        #endregion
 
+        //Constructor
         public ElkSystemTroubleState()
         {
             RawFields = new char[32];
@@ -43,6 +47,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
             KeypadLine1 = string.Empty;
             KeypadLine2 = string.Empty;
         }
+
 
         public bool HasAnyTrouble
         {
@@ -71,7 +76,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
                        FireTroubleZone > 0;
             }
         }
-
         public string Summary
         {
             get

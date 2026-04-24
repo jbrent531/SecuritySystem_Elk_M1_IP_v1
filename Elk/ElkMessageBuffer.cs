@@ -3,12 +3,18 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 
+
+// Stream framer for ELK TCP traffic.
+// The panel can deliver partial packets or multiple packets at once, so this buffer extracts complete CRLF-terminated ELK frames.
+
+
 namespace SecuritySystem_Elk_M1_IP_v1
 {
     public sealed class ElkMessageBuffer
     {
         private readonly StringBuilder _buffer = new StringBuilder();
 
+        // Accepts raw ASCII chunks from the TCP socket and returns complete ELK packets once length and CRLF framing line up.
         public List<string> AppendAndExtract(string asciiChunk)
         {
             var packets = new List<string>();
@@ -37,6 +43,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 // bodyLength = length of LL+CC+DATA (based on what your builder/parser is using)
                 // plus checksum (2 chars)
                 // plus CRLF (2 chars)
+
                 int totalPacketLength = bodyLength + 2 + 2;
 
                 if (_buffer.Length < totalPacketLength)

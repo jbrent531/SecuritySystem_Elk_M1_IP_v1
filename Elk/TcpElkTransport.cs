@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace SecuritySystem_Elk_M1_IP_v1
 {
+
+    // Raw TCP transport for the ELK M1 Ethernet interface.
+    // This layer only connects, reads, writes, and reports bytes; protocol parsing happens above it.
     public sealed class TcpElkTransport : IDisposable
     {
         private TcpClient _client;

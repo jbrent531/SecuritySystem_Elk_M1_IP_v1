@@ -1,5 +1,10 @@
 ﻿namespace SecuritySystem_Elk_M1_IP_v1
 {
+
+    // Decodes user-code activity reported by the panel.
+    // These messages let the driver surface who armed or disarmed the system and how the event was classified.
+
+
     public static class ElkUserCodeEventDecoder
     {
         public static ElkUserCodeEvent Decode(string data)

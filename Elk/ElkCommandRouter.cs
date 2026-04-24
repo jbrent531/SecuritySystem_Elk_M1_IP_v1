@@ -6,12 +6,16 @@ namespace SecuritySystem_Elk_M1_IP_v1
 {
     public sealed class ElkCommandRouter
     {
+        // Panel size limits and state references used while interpreting ELK responses.
         private const int MaxAreas = 8;
         private const int MaxZones = 208;
 
         private readonly ElkSystemState _state;
         private readonly Dictionary<int, char> _lastLoggedZoneRawStatus = new Dictionary<int, char>();
 
+
+        //Constructor
+        // The router needs the shared state model so each incoming packet can update the correct area, zone, keypad, or trouble object.
         public ElkCommandRouter(ElkSystemState state)
         {
             if (state == null)
@@ -22,6 +26,8 @@ namespace SecuritySystem_Elk_M1_IP_v1
             _state = state;
         }
 
+
+        // Dispatch table for the ELK command codes this driver currently understands.
         public void Handle(ElkPacket packet)
         {
             if (packet == null)
@@ -106,8 +112,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
         }
 
         private void HandleRp(ElkPacket packet) { }
-        private void HandleXk(ElkPacket packet) { }
-
         private void HandleIc(ElkPacket packet)
         {
             if (string.IsNullOrEmpty(packet.Data))
@@ -121,7 +125,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
             CrestronConsole.PrintLine("IC RAW: " + packet.Data);
             CrestronConsole.PrintLine("IC user-code event: " + userCodeEvent);
         }
-
+        private void HandleXk(ElkPacket packet) { }
         private void HandleAs(ElkPacket packet)
         {
             if (string.IsNullOrEmpty(packet.Data) || packet.Data.Length < 24)
@@ -178,7 +182,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
             _state.RecalculateDerivedState();
         }
-
         private void HandleZs(ElkPacket packet)
         {
             int zoneCount = Get208ArrayLength(packet.Data);
@@ -206,7 +209,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
             _state.RecalculateDerivedState();
         }
-
         private void HandleZd(ElkPacket packet)
         {
             int zoneCount = Get208ArrayLength(packet.Data);
@@ -236,7 +238,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
             CrestronConsole.PrintLine("ZONE DEFINITIONS UPDATED.");
             _state.RecalculateDerivedState();
         }
-
         private void HandleZp(ElkPacket packet)
         {
             int zoneCount = Get208ArrayLength(packet.Data);
@@ -268,7 +269,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 }
             }
         }
-
         private void HandleZc(ElkPacket packet)
         {
             if (string.IsNullOrWhiteSpace(packet.Data) || packet.Data.Length < 4)
@@ -302,9 +302,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
             _state.RecalculateDerivedState();
         }
-
         private void HandleAm(ElkPacket packet) { }
-
         private void HandleZb(ElkPacket packet)
         {
             if (string.IsNullOrWhiteSpace(packet.Data) || packet.Data.Length < 4)
@@ -334,7 +332,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
             _state.RecalculateDerivedState();
         }
-
         private void HandleSd(ElkPacket packet)
         {
             if (string.IsNullOrWhiteSpace(packet.Data) || packet.Data.Length < 21)
@@ -393,7 +390,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 }
             }
         }
-
         private void HandleKa(ElkPacket packet)
         {
             if (string.IsNullOrEmpty(packet.Data))
@@ -426,7 +422,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 }
             }
         }
-
         private void HandleKc(ElkPacket packet)
         {
             if (string.IsNullOrEmpty(packet.Data) || packet.Data.Length < 18)
@@ -477,7 +472,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 " f5=" + ElkKeypadDecoder.DecodeFunctionLedState(keypad.FunctionKeyLedStates[4]) +
                 " f6=" + ElkKeypadDecoder.DecodeFunctionLedState(keypad.FunctionKeyLedStates[5]));
         }
-
         private void HandleKf(ElkPacket packet)
         {
             if (string.IsNullOrEmpty(packet.Data) || packet.Data.Length < 11)
@@ -521,7 +515,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 " area1Chime=" + _state.GetOrCreateArea(1).ChimeModeText +
                 " area2Chime=" + _state.GetOrCreateArea(2).ChimeModeText);
         }
-
         private void HandleSs(ElkPacket packet)
         {
             if (string.IsNullOrEmpty(packet.Data))
@@ -560,7 +553,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
             return data.Length > MaxZones ? MaxZones : data.Length;
         }
-
         private void LogZoneChangeUpdate(ElkZone zone)
         {
             char lastRaw;

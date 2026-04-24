@@ -8,6 +8,8 @@ namespace SecuritySystem_Elk_M1_IP_v1
     {
         private readonly TcpElkTransport _transport;
 
+
+        //Constructor
         public ElkM1Client(TcpElkTransport transport)
         {
             _transport = transport ?? throw new ArgumentNullException("transport");
@@ -19,6 +21,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
             return _transport.SendAsciiAsync(packet);
         }
 
+
         public Task RequestArmingStatusAsync() { return SendRawCommandAsync("as", "00"); }
         public Task RequestZoneStatusAsync() { return SendRawCommandAsync("zs", "00"); }
         public Task RequestZoneDefinitionsAsync() { return SendRawCommandAsync("zd", "00"); }
@@ -26,6 +29,8 @@ namespace SecuritySystem_Elk_M1_IP_v1
         public Task RequestKeypadAreaAssignmentsAsync() { return SendRawCommandAsync("ka", "00"); }
         public Task RequestSystemTroubleStatusAsync() { return SendRawCommandAsync("ss", "00"); }
         public Task RequestVersionNumberAsync() { return SendRawCommandAsync("vn", "00"); }
+
+
 
         public Task RequestTextDescriptionAsync(int textType, int number)
         {
@@ -38,7 +43,8 @@ namespace SecuritySystem_Elk_M1_IP_v1
             string data = string.Format("{0:D2}{1:D3}00", textType, number);
             return SendRawCommandAsync("sd", data);
         }
-
+        
+        
         public Task RequestFunctionKeyStatusAsync(int keypadNumber)
         {
             if (keypadNumber < 1 || keypadNumber > 16)
@@ -47,7 +53,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
             string data = string.Format("{0:D2}00", keypadNumber);
             return SendRawCommandAsync("kc", data);
         }
-
         public Task PressFunctionKeyAsync(int keypadNumber, int functionKeyNumber)
         {
             if (keypadNumber < 1 || keypadNumber > 16)
@@ -61,6 +66,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
             return SendRawCommandAsync("kf", data);
         }
 
+
         public Task ToggleChimeAsync(int keypadNumber)
         {
             if (keypadNumber < 1 || keypadNumber > 16)
@@ -70,7 +76,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
             CrestronConsole.PrintLine("ELK CHIME CMD: kf " + data);
             return SendRawCommandAsync("kf", data);
         }
-
         public Task RequestChimeModeAsync(int keypadNumber)
         {
             if (keypadNumber < 1 || keypadNumber > 16)
@@ -81,6 +86,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
             return SendRawCommandAsync("kf", data);
         }
 
+        
         public Task ArmStayAsync(int area, string code) { return SendArmCommandAsync("a2", area, code); }
         public Task ArmAwayAsync(int area, string code) { return SendArmCommandAsync("a1", area, code); }
         public Task DisarmAsync(int area, string code) { return SendArmCommandAsync("a0", area, code); }

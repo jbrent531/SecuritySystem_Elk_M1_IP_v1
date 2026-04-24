@@ -14,6 +14,9 @@ using Newtonsoft.Json;
 
 namespace SecuritySystem_Elk_M1_IP_v1
 {
+
+    // Crestron RAD driver entry point for the ELK M1 integration.
+    // This class exposes RAD security-system capabilities and forwards them to SecuritySystemProtocol.
     public class SecuritySystemDriverIP : ABasicDriver, ISecuritySystem, ITcp
     {
         private SecuritySystemProtocol _securitySystemProtocol;
@@ -36,6 +39,8 @@ namespace SecuritySystem_Elk_M1_IP_v1
             SecuritySystemCapabilities.Zones
         };
 
+
+        //Constructor
         public SecuritySystemDriverIP()
             : base()
         {
@@ -111,15 +116,10 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
 
 
-        public void BypassZone(int areaIndex, int zoneIndex, string password)
-        {
-        }
-
         public IEnumerable<SecuritySystemError> GetActiveErrors()
         {
             return _currentlyActiveErrors;
         }
-
         public IEnumerable<ISecuritySystemZone> GetAllZones()
         {
             if (_securitySystemProtocol == null)
@@ -129,7 +129,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
             return _securitySystemProtocol.Zones;
         }
-
         public ISecuritySystemArea GetArea(int index)
         {
             if (_securitySystemProtocol == null)
@@ -147,7 +146,6 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
             return null;
         }
-
         public IEnumerable<ISecuritySystemArea> GetAreas()
         {
             if (_securitySystemProtocol == null)
@@ -157,42 +155,37 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
             return _securitySystemProtocol.GetVisibleAreas();
         }
-
-        public ReadOnlyCollection<SecuritySystemAreaCommand> GetAvailableAreaCommands()
-        {
-            return _availableAreaCommands;
-        }
-
-        public ReadOnlyCollection<SecuritySystemAlarmType> GetAvailableSystemAlarms()
-        {
-            return _availableAlarms;
-        }
-
-        public ReadOnlyCollection<SecuritySystemState> GetAvailableSystemStates()
-        {
-            return _availableStates;
-        }
-
-        public ReadOnlyCollection<SecuritySystemCapabilities> GetCapabilities()
-        {
-            return new ReadOnlyCollection<SecuritySystemCapabilities>(_capabilityList);
-        }
-
         public IEnumerable<SecuritySystemAlarmType> GetCurrentSystemAlarms()
         {
             return _currentlyActiveAlarms;
         }
-
         public IEnumerable<SecuritySystemState> GetCurrentSystemStates()
         {
             return _currentlyActiveStates;
         }
-
         public IEmulatedSecuritySystemKeypad GetEmulatedKeypad()
         {
             return _securitySystemKeypad;
         }
 
+
+
+        public ReadOnlyCollection<SecuritySystemAreaCommand> GetAvailableAreaCommands()
+        {
+            return _availableAreaCommands;
+        }
+        public ReadOnlyCollection<SecuritySystemAlarmType> GetAvailableSystemAlarms()
+        {
+            return _availableAlarms;
+        }
+        public ReadOnlyCollection<SecuritySystemState> GetAvailableSystemStates()
+        {
+            return _availableStates;
+        }
+        public ReadOnlyCollection<SecuritySystemCapabilities> GetCapabilities()
+        {
+            return new ReadOnlyCollection<SecuritySystemCapabilities>(_capabilityList);
+        }
         public SecuritySystemOperationalResult SendAreaCommand(List<int> areaIndexes, int commandIndex, string password)
         {
             if (_securitySystemProtocol == null)
@@ -205,6 +198,8 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
             return _securitySystemProtocol.ExecuteSecurityCommands(areaIndexes, commandIndex, password);
         }
+
+
 
         protected override JsonConverter CreateDeviceSupportConverter()
         {
@@ -257,7 +252,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
             _securitySystemProtocol.SystemCommandResult += OnProtocolCommandResultChanged;
         }
 
-private void InitializeKeypad()
+        private void InitializeKeypad()
 {
     KeypadInstance = new SecuritySystemKeypad();
     KeypadInstance.Initialize(_securitySystemProtocol);
@@ -308,6 +303,12 @@ private void InitializeKeypad()
                 }
             }
         }
+        public void BypassZone(int areaIndex, int zoneIndex, string password)
+        {
+        }
+
+
+
 
         private void OnProtocolZoneListChanged(object sender, ListChangedEventArgs<ISecuritySystemZone> e)
         {
@@ -317,7 +318,6 @@ private void InitializeKeypad()
                 handler(this, e);
             }
         }
-
         private void OnProtocolStateChanged(object changedObject)
         {
             var newSecuritySystemState = changedObject as SecuritySystemStateArgs;
@@ -326,7 +326,6 @@ private void InitializeKeypad()
                 RaiseSystemStateEvent(newSecuritySystemState.EventType, newSecuritySystemState.State);
             }
         }
-
         private void OnProtocolAlarmChanged(object changedObject)
         {
             var obj = changedObject as SecuritySystemAlarmStateArgs;
@@ -377,7 +376,6 @@ private void InitializeKeypad()
                 }
             }
         }
-
         private void OnProtocolAreaListChanged(object sender, ListChangedEventArgs<ISecuritySystemArea> listChangedEventArgs)
         {
             var handler = SecuritySystemAreaListChanged;
@@ -386,7 +384,6 @@ private void InitializeKeypad()
                 handler(this, listChangedEventArgs);
             }
         }
-
         private void OnProtocolConnectionChanged(object driver, ValueEventArgs<bool> e)
         {
             if (e != null && e.Value != Connected)
@@ -396,7 +393,6 @@ private void InitializeKeypad()
                 Log(string.Format("ConnectedChanged - new state: {0}", e.Value));
             }
         }
-
         private void OnProtocolCommandResultChanged(object sender, SecuritySystemCommandResultEventArgs args)
         {
             var handler = SecuritySystemCommandResult;

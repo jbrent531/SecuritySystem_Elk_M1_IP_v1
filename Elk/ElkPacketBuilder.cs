@@ -26,6 +26,8 @@ namespace SecuritySystem_Elk_M1_IP_v1
             return body + checksum + "\r\n";
         }
 
+
+        // Overloads and checksum logic for building ELK packets in the exact format the panel expects.
         public static string Build(string command)
         {
             return Build(command, string.Empty);

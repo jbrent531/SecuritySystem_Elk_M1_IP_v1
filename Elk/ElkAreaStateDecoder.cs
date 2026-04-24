@@ -2,6 +2,8 @@ namespace SecuritySystem_Elk_M1_IP_v1
 {
     public static class ElkAreaStateDecoder
     {
+
+        // Decodes the AS arm-up and alarm bytes and exposes convenience checks the rest of the driver uses.
         public static string DecodeArmState(char raw)
         {
             switch (raw)

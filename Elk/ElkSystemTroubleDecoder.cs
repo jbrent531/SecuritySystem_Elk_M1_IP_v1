@@ -1,5 +1,8 @@
 ﻿using System;
 
+// Decodes SS system-trouble responses from the ELK panel.
+// It maps the fixed-position trouble fields into named panel conditions and keypad text lines.
+
 namespace SecuritySystem_Elk_M1_IP_v1
 {
     public static class ElkSystemTroubleDecoder

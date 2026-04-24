@@ -24,6 +24,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
         public event Action<bool> SystemReadyChanged;
         public event Action<bool> AlarmActiveChanged;
         public event Action<ElkSystemTroubleState> SystemTroubleChanged;
+        public event Action<ElkUserCodeEvent> UserCodeEventReceived;
 
         public IReadOnlyDictionary<int, ElkZone> Zones { get { return _state.Zones; } }
         public IReadOnlyDictionary<int, ElkArea> Areas { get { return _state.Areas; } }
@@ -48,6 +49,16 @@ namespace SecuritySystem_Elk_M1_IP_v1
             _state.SystemReadyChanged += OnStateSystemReadyChanged;
             _state.AlarmActiveChanged += OnStateAlarmActiveChanged;
             _state.SystemTroubleChanged += OnStateSystemTroubleChanged;
+            _state.UserCodeEventReceived += OnStateUserCodeEventReceived;
+        }
+
+        private void OnStateUserCodeEventReceived(ElkUserCodeEvent userCodeEvent)
+        {
+            var handler = UserCodeEventReceived;
+            if (handler != null)
+            {
+                handler(userCodeEvent);
+            }
         }
 
         public async Task StartAsync(string host, int port)

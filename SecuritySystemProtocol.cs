@@ -499,6 +499,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
                     _elkService.SystemReadyChanged -= OnElkSystemReadyChanged;
                     _elkService.AlarmActiveChanged -= OnElkAlarmActiveChanged;
                     _elkService.SystemTroubleChanged -= OnElkSystemTroubleChanged;
+                    _elkService.UserCodeEventReceived -= OnElkUserCodeEventReceived;
 
                     try
                     {
@@ -560,6 +561,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
             _elkService.SystemReadyChanged += OnElkSystemReadyChanged;
             _elkService.AlarmActiveChanged += OnElkAlarmActiveChanged;
             _elkService.SystemTroubleChanged += OnElkSystemTroubleChanged;
+            _elkService.UserCodeEventReceived += OnElkUserCodeEventReceived;
         }
 
         private void StartElkService()
@@ -612,6 +614,16 @@ namespace SecuritySystem_Elk_M1_IP_v1
             }
         }
 
+
+        private void OnElkUserCodeEventReceived(ElkUserCodeEvent userCodeEvent)
+        {
+            if (userCodeEvent == null)
+            {
+                return;
+            }
+
+            LogMessage("UserCodeEventReceived: " + userCodeEvent);
+        }
 
         private async Task PublishConfiguredZonesAfterReadyAsync()
         {
@@ -878,11 +890,19 @@ namespace SecuritySystem_Elk_M1_IP_v1
             bool isStay = IsStay(elkArea);
             bool isAway = IsAway(elkArea);
             bool isDisarmed = !isStay && !isAway;
+            bool isExitDelay = elkArea.IsExitDelayActive;
+            bool isEntryDelay = elkArea.IsEntryDelayActive;
             bool burglaryActive = elkArea.IsAlarm;
+            bool isArmedStayInstant = elkArea.IsArmedStayInstant;
 
             area.UpdateArmingState(SecuritySystemState.Disarmed, isDisarmed);
             area.UpdateArmingState(SecuritySystemState.ArmedStay, isStay);
             area.UpdateArmingState(SecuritySystemState.ArmedAway, isAway);
+
+            area.UpdateArmingState(SecuritySystemState.ExitDelayActive, isExitDelay);
+            area.UpdateArmingState(SecuritySystemState.EntryDelayActive, isEntryDelay);
+
+            area.UpdateArmingState(SecuritySystemState.ArmedStayInstant, isArmedStayInstant);
 
             area.UpdateAlarmState(SecuritySystemAlarmType.Alarm, burglaryActive);
             area.UpdateAlarmState(SecuritySystemAlarmType.Burglary, burglaryActive);
@@ -899,6 +919,11 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 RaiseKeypadStateChangedEvent(SecuritySystemState.ArmedStay, isStay);
                 RaiseKeypadStateChangedEvent(SecuritySystemState.ArmedAway, isAway);
 
+                RaiseKeypadStateChangedEvent(SecuritySystemState.ExitDelayActive, isExitDelay);
+                RaiseKeypadStateChangedEvent(SecuritySystemState.EntryDelayActive, isEntryDelay);
+
+                RaiseKeypadStateChangedEvent(SecuritySystemState.ArmedStayInstant, isArmedStayInstant);
+
                 RaiseKeypadAlarmChangedEvent(SecuritySystemAlarmType.Alarm, burglaryActive);
                 RaiseKeypadAlarmChangedEvent(SecuritySystemAlarmType.Burglary, burglaryActive);
             }
@@ -908,6 +933,10 @@ namespace SecuritySystem_Elk_M1_IP_v1
             LogMessage(
                 "OnElkAreaChanged area=" + elkArea.Number +
                 " keypadArea=" + keypadArea +
+                " stay=" + isStay +
+                " away=" + isAway +
+                " entryDelay=" + isEntryDelay +
+                " exitDelay=" + isExitDelay +
                 " chime=" + elkArea.ChimeModeText +
                 " chimeEnabled=" + elkArea.IsChimeEnabled);
         }
@@ -999,7 +1028,10 @@ namespace SecuritySystem_Elk_M1_IP_v1
                 {
                     SecuritySystemState.ArmedAway,
                     SecuritySystemState.ArmedStay,
-                    SecuritySystemState.Disarmed
+                    SecuritySystemState.Disarmed,
+                    SecuritySystemState.EntryDelayActive,
+                    SecuritySystemState.ExitDelayActive,
+                    SecuritySystemState.ArmedStayInstant,
                 }.AsReadOnly();
 
             ReadOnlyCollection<SecuritySystemAlarmType> supportedAlarms = new List<SecuritySystemAlarmType>

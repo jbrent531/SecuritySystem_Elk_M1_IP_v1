@@ -13,6 +13,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
         event Action<bool> SystemReadyChanged;
         event Action<bool> AlarmActiveChanged;
         event Action<ElkSystemTroubleState> SystemTroubleChanged;
+        event Action<ElkUserCodeEvent> UserCodeEventReceived;
 
         IReadOnlyDictionary<int, ElkZone> Zones { get; }
         IReadOnlyDictionary<int, ElkArea> Areas { get; }
@@ -44,4 +45,3 @@ namespace SecuritySystem_Elk_M1_IP_v1
         int GetKeypadArea(int keypadNumber);
     }
 }
-

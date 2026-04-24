@@ -219,6 +219,8 @@
     <Compile Include="Elk\ElkSystemState.cs" />
     <Compile Include="Elk\ElkSystemTroubleDecoder.cs" />
     <Compile Include="Elk\ElkSystemTroubleState.cs" />
+    <Compile Include="Elk\ElkUserCodeEvent.cs" />
+    <Compile Include="Elk\ElkUserCodeEventDecoder.cs" />
     <Compile Include="Elk\ElkZone.cs" />
     <Compile Include="Elk\ElkZoneDefinition.cs" />
     <Compile Include="Elk\ElkZoneDefinitionDecoder.cs" />

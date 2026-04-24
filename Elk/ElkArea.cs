@@ -20,6 +20,9 @@ namespace SecuritySystem_Elk_M1_IP_v1
         public bool IsFullyArmed { get; set; }
         public bool IsBypassedArmed { get; set; }
         public bool IsAlarm { get; set; }
+
+        public bool IsArmedStayInstant { get; set; }
+
         public bool IsEntryDelayActive { get; set; }
         public int DelaySeconds { get; set; }
 

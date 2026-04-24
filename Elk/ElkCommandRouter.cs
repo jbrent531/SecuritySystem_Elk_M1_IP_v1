@@ -35,6 +35,10 @@ namespace SecuritySystem_Elk_M1_IP_v1
                     HandleRp(packet);
                     break;
 
+                case "IC":
+                    HandleIc(packet);
+                    break;
+
                 case "XK":
                     HandleXk(packet);
                     break;
@@ -87,7 +91,9 @@ namespace SecuritySystem_Elk_M1_IP_v1
                     HandleSs(packet);
                     break;
 
-                case "IC":
+                case "ST":
+                    break;
+
                 case "LD":
                 case "EE":
                     CrestronConsole.PrintLine("Ignoring " + packet.Command + ": " + packet.Data);
@@ -101,6 +107,20 @@ namespace SecuritySystem_Elk_M1_IP_v1
 
         private void HandleRp(ElkPacket packet) { }
         private void HandleXk(ElkPacket packet) { }
+
+        private void HandleIc(ElkPacket packet)
+        {
+            if (string.IsNullOrEmpty(packet.Data))
+            {
+                return;
+            }
+
+            ElkUserCodeEvent userCodeEvent = ElkUserCodeEventDecoder.Decode(packet.Data);
+            _state.SetLastUserCodeEvent(userCodeEvent);
+
+            CrestronConsole.PrintLine("IC RAW: " + packet.Data);
+            CrestronConsole.PrintLine("IC user-code event: " + userCodeEvent);
+        }
 
         private void HandleAs(ElkPacket packet)
         {

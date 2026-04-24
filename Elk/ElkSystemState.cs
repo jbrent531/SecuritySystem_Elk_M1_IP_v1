@@ -10,6 +10,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
         public Dictionary<int, int> KeypadAreas { get; private set; }
         public Dictionary<int, ElkKeypad> Keypads { get; private set; }
         public ElkSystemTroubleState SystemTrouble { get; private set; }
+        public ElkUserCodeEvent LastUserCodeEvent { get; private set; }
 
         public bool IsSystemReady { get; private set; }
         public bool IsAlarmActive { get; private set; }
@@ -23,6 +24,7 @@ namespace SecuritySystem_Elk_M1_IP_v1
         public event Action<int, int> KeypadAreaChanged;
         public event Action<ElkKeypad> KeypadChanged;
         public event Action<ElkSystemTroubleState> SystemTroubleChanged;
+        public event Action<ElkUserCodeEvent> UserCodeEventReceived;
 
         public ElkSystemState()
         {
@@ -31,7 +33,20 @@ namespace SecuritySystem_Elk_M1_IP_v1
             KeypadAreas = new Dictionary<int, int>();
             Keypads = new Dictionary<int, ElkKeypad>();
             SystemTrouble = new ElkSystemTroubleState();
+            LastUserCodeEvent = new ElkUserCodeEvent();
         }
+
+        public void SetLastUserCodeEvent(ElkUserCodeEvent userCodeEvent)
+        {
+            LastUserCodeEvent = userCodeEvent ?? new ElkUserCodeEvent();
+
+            var handler = UserCodeEventReceived;
+            if (handler != null)
+            {
+                handler(LastUserCodeEvent);
+            }
+        }
+
 
         public ElkZone GetOrCreateZone(int zoneNumber)
         {
